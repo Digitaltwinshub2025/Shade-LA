@@ -1,0 +1,635 @@
+/* ===================================
+   GLOBAL
+=================================== */
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html,
+body,
+#root {
+  margin: 0;
+  padding: 0;
+  height: 100%;
+  width: 100%;
+  font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI",
+    sans-serif;
+  background: #0a121e;
+  color: #e6f0ff;
+}
+
+/* ===================================
+   LAYOUT (USGBC-STYLE)
+=================================== */
+
+.usgbc-app {
+  display: grid;
+  grid-template-columns: 220px 1fr;
+  min-height: 100dvh;
+}
+
+.usgbc-app.sidebar-hidden {
+  grid-template-columns: 1fr;
+}
+
+.usgbc-app.sidebar-hidden nav {
+  display: none;
+}
+
+.show-sidebar {
+  display: none;
+  position: fixed;
+  top: 20px;
+  left: 20px;
+  z-index: 1001;
+  background: rgba(17, 29, 46, 0.9);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  color: #e6f0ff;
+  padding: 8px 12px;
+  border-radius: 8px;
+  cursor: pointer;
+}
+
+.usgbc-app.sidebar-hidden .show-sidebar {
+  display: block;
+}
+
+nav {
+  position: sticky;
+  top: 0;
+  height: 100dvh;
+  overflow-y: auto;
+  background: linear-gradient(180deg, #0c1320, #0a111b);
+  border-right: 1px solid rgba(255, 255, 255, 0.05);
+  padding: 24px 20px;
+}
+
+main {
+  padding: 18px;
+}
+
+.brand {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 18px;
+  position: relative;
+  padding-right: 30px;
+}
+
+.logo {
+  width: 34px;
+  height: 34px;
+  border-radius: 10px;
+  background: linear-gradient(135deg, #4ade80, #60a5fa);
+  box-shadow: inset 0 0 12px rgba(255, 255, 255, 0.2);
+}
+
+.brand h1 {
+  font-size: 1.05rem;
+  letter-spacing: 0.2px;
+  margin: 0;
+}
+
+.hide-btn {
+  position: absolute;
+  right: 0;
+  top: 50%;
+  transform: translateY(-50%);
+  background: none;
+  border: none;
+  color: rgba(230, 240, 255, 0.7);
+  font-size: 24px;
+  line-height: 1;
+  cursor: pointer;
+  padding: 0 8px;
+  border-radius: 6px;
+}
+
+.hide-btn:hover {
+  color: #e6f0ff;
+  background: rgba(255, 255, 255, 0.08);
+}
+
+.search {
+  position: relative;
+  margin: 12px 0 16px;
+}
+
+.search svg {
+  position: absolute;
+  left: 10px;
+  top: 9px;
+  opacity: 0.7;
+}
+
+.search input {
+  width: 100%;
+  background: rgba(11, 20, 34, 0.8);
+  border: 1px solid rgba(96, 165, 250, 0.2);
+  color: #e6f0ff;
+  padding: 12px 16px 12px 40px;
+  border-radius: 12px;
+  outline: none;
+  font-size: 0.95rem;
+}
+
+.search input::placeholder {
+  color: rgba(138, 160, 183, 0.9);
+}
+
+.toc .group {
+  margin-top: 14px;
+  font-size: 0.8rem;
+  color: #9fb3c9;
+  letter-spacing: 0.3px;
+  text-transform: uppercase;
+  padding: 6px 10px;
+}
+
+.toc a {
+  display: flex;
+  align-items: center;
+  padding: 10px 14px;
+  border-radius: 10px;
+  color: #cfe3ff;
+  margin: 2px 0;
+  text-decoration: none;
+}
+
+.toc a:hover {
+  background: rgba(96, 165, 250, 0.1);
+}
+
+.toc a.active {
+  background: rgba(96, 165, 250, 0.15);
+  color: #fff;
+  font-weight: 600;
+}
+
+.hero {
+  background:
+    radial-gradient(1200px 600px at 60% -100px, rgba(96, 165, 250, 0.1), transparent),
+    linear-gradient(180deg, #0b1320, #0a121e);
+  border: 1px solid rgba(96, 165, 250, 0.15);
+  border-radius: 16px;
+  padding: 28px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.4);
+  display: grid;
+  grid-template-columns: 1.2fr 0.8fr;
+  gap: 20px;
+  align-items: center;
+}
+
+.badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 8px 14px;
+  border-radius: 999px;
+  border: 1px solid rgba(36, 52, 78, 1);
+  background: linear-gradient(135deg, #0b1422, #0f1a2e);
+  color: #cfe3ff;
+  font-size: 0.85rem;
+  font-weight: 600;
+}
+
+.hero h2 {
+  font-size: 1.8rem;
+  margin: 8px 0 12px;
+}
+
+.hero p {
+  color: #c7d6ea;
+  font-size: 1.05rem;
+  line-height: 1.6;
+  margin-bottom: 20px;
+}
+
+.actions {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.btn {
+  appearance: none;
+  border: none;
+  border-radius: 12px;
+  padding: 12px 20px;
+  cursor: pointer;
+  font-weight: 600;
+  font-size: 0.95rem;
+  background: linear-gradient(135deg, #2a4365, #1e3a8a);
+  color: #fff;
+  border: 1px solid rgba(96, 165, 250, 0.2);
+  text-decoration: none;
+}
+
+.btn.brand {
+  background: linear-gradient(135deg, #10b981, #059669);
+  border-color: rgba(16, 185, 129, 0.3);
+}
+
+.btn:hover {
+  filter: brightness(1.05);
+}
+
+.hero-panel {
+  padding: 0;
+}
+
+.hero-card {
+  padding: 18px;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.hero-card-title {
+  font-weight: 700;
+  letter-spacing: 0.02em;
+}
+
+.hero-card-links {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.hero-card-links a {
+  color: #cfe3ff;
+  text-decoration: none;
+  padding: 10px 12px;
+  border-radius: 10px;
+  border: 1px solid rgba(96, 165, 250, 0.15);
+  background: rgba(12, 20, 34, 0.45);
+}
+
+.hero-card-links a:hover {
+  background: rgba(96, 165, 250, 0.12);
+}
+
+.small {
+  font-size: 0.9rem;
+  color: #9fb3c9;
+}
+
+.workspace-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  grid-template-rows: 1000px minmax(320px, 1fr);
+  gap: 16px;
+  height: auto;
+}
+
+.panel-analytics {
+  height: min(100vh, 900px);
+}
+
+/* ===================================
+   PANELS
+=================================== */
+
+.panel {
+  display: flex;
+  flex-direction: column;
+  background: rgba(17, 29, 46, 0.8);
+  border-radius: 16px;
+  padding: 12px 12px 10px;
+  border: 1px solid rgba(96, 165, 250, 0.15);
+}
+
+.panel h3 {
+  margin: 0 0 16px;
+}
+
+.panel-header {
+  padding: 4px 6px 8px;
+}
+
+.panel-header h2 {
+  font-size: 0.85rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  opacity: 0.75;
+  margin: 0;
+}
+
+.panel-body {
+  flex: 1;
+  border-radius: 12px;
+  overflow: hidden;
+  position: relative;
+}
+
+/* ===================================
+   PANEL PLACEMENT (INSIDE WORKSPACE GRID)
+=================================== */
+
+.panel-right {
+  grid-column: auto;
+  grid-row: auto;
+}
+
+.panel-unreal {
+  grid-column: 1;
+  grid-row: auto;
+}
+
+.panel-map {
+  grid-column: 2;
+  grid-row: auto;
+}
+
+.panel-map-top {
+  grid-column: 1 / span 2;
+  grid-row: 1;
+}
+
+/* Panoramic map banner styling */
+.panel-map-top {
+  padding: 0;
+  border-radius: 12px;
+  overflow: hidden;
+}
+
+.panel-map-top .panel-header {
+  position: absolute;
+  z-index: 2;
+  top: 10px;
+  left: 10px;
+  padding: 6px 10px;
+  border-radius: 10px;
+  background: rgba(10, 18, 30, 0.55);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  backdrop-filter: blur(6px);
+}
+
+.panel-map-top .panel-body {
+  border-radius: 0;
+}
+
+.panel-model {
+  grid-column: 1;
+  grid-row: 2;
+}
+
+.panel-grasshopper {
+  grid-column: 2;
+  grid-row: 2;
+}
+
+/* ===================================
+   RIGHT PANEL (PowerBI + Ranking)
+=================================== */
+
+.right-body {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  height: 100%;
+}
+
+.right-powerbi {
+  flex: 1.2;
+  min-height: 0;
+}
+
+.right-ranking {
+  flex: 1;
+  min-height: 0;
+}
+
+.powerbi-wrapper-outer,
+.powerbi-embed {
+  width: 100%;
+  height: 100%;
+}
+
+.powerbi-embed {
+  border-radius: 10px;
+  overflow: hidden;
+}
+
+/* ===================================
+   PLACEHOLDERS (Unreal / Map)
+=================================== */
+
+.placeholder {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.9rem;
+  color: rgba(255, 255, 255, 0.5);
+  border: 1px dashed rgba(255, 255, 255, 0.15);
+  backdrop-filter: blur(4px);
+}
+
+/* ===================================
+   RANKING TABLE
+=================================== */
+
+.ranking-root {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+}
+
+.ranking-toolbar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 8px;
+  gap: 8px;
+}
+
+.ranking-title {
+  font-size: 0.9rem;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  opacity: 0.85;
+}
+
+.ranking-search {
+  flex: 0 0 220px;
+  max-width: 260px;
+  padding: 6px 12px;
+  border-radius: 999px;
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  background: rgba(5, 5, 10, 0.96);
+  color: #fff;
+  font-size: 0.8rem;
+}
+
+.ranking-search::placeholder {
+  color: rgba(255, 255, 255, 0.4);
+}
+
+/* Table scroll container */
+.ranking-table-wrapper {
+  flex: 1;
+  overflow-y: auto;
+  overflow-x: hidden !important;
+  border-radius: 10px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  background: rgba(12, 12, 18, 0.95);
+}
+
+/* DARK SCROLLBARS */
+.ranking-table-wrapper::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+
+.ranking-table-wrapper::-webkit-scrollbar-track {
+  background: #0d0d12;
+  border-radius: 10px;
+}
+
+.ranking-table-wrapper::-webkit-scrollbar-thumb {
+  background: #3b3b4a;
+  border-radius: 10px;
+  border: 2px solid #0d0d12;
+}
+
+.ranking-table-wrapper::-webkit-scrollbar-thumb:hover {
+  background: #4e4e60;
+}
+
+.ranking-table-wrapper {
+  scrollbar-width: thin;
+  scrollbar-color: #3b3b4a #0d0d12;
+}
+
+/* Table */
+.ranking-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.78rem;
+  table-layout: fixed;
+  overflow-x: hidden;
+}
+
+.ranking-table thead {
+  position: sticky;
+  top: 0;
+  background: #151520;
+  z-index: 2;
+}
+
+.ranking-table th,
+.ranking-table td {
+  padding: 6px 10px;
+  text-align: left;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.ranking-table th {
+  font-weight: 500;
+  color: rgba(255, 255, 255, 0.75);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.12);
+  cursor: pointer;
+  user-select: none;
+}
+
+.ranking-table tbody tr:nth-child(even) {
+  background: rgba(255, 255, 255, 0.02);
+}
+
+.ranking-row {
+  transition: background 0.15s ease;
+}
+
+.ranking-row:hover {
+  background: rgba(65, 137, 255, 0.14);
+}
+
+.ranking-row.selected {
+  background: rgba(65, 137, 255, 0.26);
+  box-shadow: inset 0 0 0 1px rgba(65, 137, 255, 0.5);
+}
+
+.sort-indicator {
+  margin-left: 4px;
+  font-size: 0.65rem;
+  opacity: 0.7;
+}
+
+/* ===================================
+   RESPONSIVE BREAKPOINTS
+=================================== */
+
+/* ——————— Medium screens ——————— */
+@media (max-width: 1200px) {
+  .panel {
+    padding: 10px;
+  }
+}
+
+/* ——————— Mobile / Tablet ——————— */
+@media (max-width: 900px) {
+  .usgbc-app {
+    grid-template-columns: 1fr;
+  }
+
+  nav {
+    height: auto;
+    max-height: 70vh;
+    position: relative;
+    border-right: none;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+  }
+
+  .hero {
+    grid-template-columns: 1fr;
+  }
+
+  .workspace-grid {
+    display: flex;
+    flex-direction: column;
+    height: auto;
+  }
+
+  /* PowerBI bigger on mobile */
+  .right-powerbi {
+    flex: 2.2;     /* MORE height now */
+  }
+
+  .right-ranking {
+    flex: 1;
+  }
+
+  /* Ranking table shows only ~10 rows */
+  .ranking-table-wrapper {
+    max-height: 280px;
+    overflow-y: auto;
+    overflow-x: hidden;
+  }
+}
+
+/* ——————— Extra Small ——————— */
+@media (max-width: 600px) {
+  .ranking-table th,
+  .ranking-table td {
+    padding: 5px 8px;
+    font-size: 0.74rem;
+  }
+
+  .ranking-search {
+    flex: 1;
+    max-width: none;
+  }
+
+  .panel-header h2 {
+    font-size: 0.78rem;
+  }
+}

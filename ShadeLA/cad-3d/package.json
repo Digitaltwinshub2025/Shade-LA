@@ -1,0 +1,42 @@
+{
+  "name": "cad-3d",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "dev": "next dev --webpack",
+    "build": "next build",
+    "start": "next start",
+    "lint": "eslint",
+    "postinstall": "node scripts/copy-cesium.cjs"
+  },
+  "dependencies": {
+    "@tarikjabiri/dxf": "^2.8.9",
+    "@turf/turf": "^7.2.0",
+    "@types/three": "^0.181.0",
+    "axios": "^1.13.2",
+    "cesium": "^1.135.0",
+    "compute-rhino3d": "^0.13.0-beta",
+    "dxf-writer": "^1.18.4",
+    "earcut": "^3.0.2",
+    "jszip": "^3.10.1",
+    "next": "16.0.1",
+    "osmtogeojson": "^3.0.0-beta.5",
+    "pngjs": "^7.0.0",
+    "geotiff": "^2.1.3",
+    "proj4": "^2.19.10",
+    "react": "19.2.0",
+    "react-dom": "19.2.0",
+    "rhino3dm": "^8.17.0",
+    "three": "^0.181.1",
+    "ws": "^8.18.3"
+  },
+  "devDependencies": {
+    "@types/node": "^20",
+    "@types/react": "^19",
+    "@types/react-dom": "^19",
+    "copy-webpack-plugin": "^13.0.1",
+    "eslint": "^9",
+    "eslint-config-next": "16.0.1",
+    "typescript": "^5"
+  }
+}

@@ -1,0 +1,42 @@
+{
+  "name": "shadela",
+  "private": true,
+  "version": "0.0.0",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "dev:ui": "vite",
+    "dev:cad": "set COMPUTE_URL=http://localhost:6500&& set COMPUTE_KEY=shadela-local&& set NEXT_PUBLIC_RHINO_COMPUTE_URL=http://localhost:6500&& npm --prefix cad-3d run dev -- -p 3001",
+    "dev:compute": "dotnet run --project compute.rhino3d/src/rhino.compute/rhino.compute.csproj -- --port 6500 --apikey shadela-local",
+    "dev:all": "concurrently -n UI,CAD,COMPUTE -c cyan,magenta,green \"npm run dev:ui\" \"npm run dev:cad\" \"npm run dev:compute\"",
+    "build": "tsc -b && vite build",
+    "lint": "eslint .",
+    "preview": "vite preview"
+  },
+  "dependencies": {
+    "powerbi-client": "^2.23.9",
+    "powerbi-client-react": "^2.0.0",
+    "react": "^19.1.1",
+    "react-dom": "^19.1.1",
+    "three": "^0.181.1"
+  },
+  "devDependencies": {
+    "@eslint/js": "^9.36.0",
+    "@types/node": "^24.6.0",
+    "@types/react": "^19.1.16",
+    "@types/react-dom": "^19.1.9",
+    "@vitejs/plugin-react": "^5.0.4",
+    "autoprefixer": "^10.4.21",
+    "babel-plugin-react-compiler": "^19.1.0-rc.3",
+    "concurrently": "^9.2.1",
+    "eslint": "^9.36.0",
+    "eslint-plugin-react-hooks": "^5.2.0",
+    "eslint-plugin-react-refresh": "^0.4.22",
+    "globals": "^16.4.0",
+    "postcss": "^8.5.6",
+    "tailwindcss": "^3.4.14",
+    "typescript": "~5.9.3",
+    "typescript-eslint": "^8.45.0",
+    "vite": "^7.1.7"
+  }
+}

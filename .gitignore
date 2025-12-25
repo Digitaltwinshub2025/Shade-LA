@@ -1,0 +1,31 @@
+# --- Root ignores for meryShadeLa mono-repo ---
+
+# Node / JS
+**/node_modules/
+**/dist/
+**/dist-ssr/
+**/.next/
+**/.turbo/
+**/.cache/
+
+# Env / secrets
+**/.env
+**/.env.*
+
+# Logs
+**/logs/
+**/*.log
+
+# OS / IDE
+**/.DS_Store
+**/Thumbs.db
+**/.idea/
+**/.vscode/
+
+# Build outputs
+**/bin/
+**/obj/
+
+# Temporary
+**/*.tmp
+**/*.swp

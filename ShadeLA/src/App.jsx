@@ -1,0 +1,208 @@
+import React, { useEffect, useMemo, useState } from "react";
+import "./App.css";
+import PowerBIReport from "./components/PowerBIReport";
+import RankingTable from "./components/RankingTable";
+import RhinoViewer from "./components/RhinoViewer";
+
+function App() {
+  const [selectedArea, setSelectedArea] = useState(null);
+
+  const [sidebarHidden, setSidebarHidden] = useState(() => {
+    try {
+      return localStorage.getItem("shadela:sidebarHidden") === "true";
+    } catch {
+      return false;
+    }
+  });
+
+  const [tocQuery, setTocQuery] = useState("");
+
+  const cadMapperUrl = import.meta.env.VITE_CADMAPPER_URL || "http://localhost:3000";
+  const grasshopperUrl = import.meta.env.VITE_GRASSHOPPER_URL || "http://localhost:5001";
+
+  const handleSelectArea = (row) => {
+    setSelectedArea(row);
+    // Later you can also send this to Unreal + Map
+  };
+
+  const tocItems = useMemo(
+    () => [
+      { href: "#overview", label: "Overview" },
+      { href: "#analytics", label: "PowerBI + Ranking" },
+      { href: "#workspace", label: "Map + Unreal" },
+    ],
+    []
+  );
+
+  const filteredTocItems = useMemo(() => {
+    const q = tocQuery.trim().toLowerCase();
+    if (!q) return tocItems;
+    return tocItems.filter((i) => i.label.toLowerCase().includes(q));
+  }, [tocItems, tocQuery]);
+
+  useEffect(() => {
+    try {
+      localStorage.setItem("shadela:sidebarHidden", sidebarHidden ? "true" : "false");
+    } catch {
+      // ignore
+    }
+  }, [sidebarHidden]);
+
+  useEffect(() => {
+    const links = Array.from(document.querySelectorAll("#toc a"));
+    const sections = links
+      .map((a) => {
+        const id = a.getAttribute("href");
+        if (!id) return null;
+        return document.querySelector(id);
+      })
+      .filter(Boolean);
+
+    if (!sections.length) return;
+
+    const obs = new IntersectionObserver(
+      (entries) => {
+        for (const e of entries) {
+          if (!e.isIntersecting) continue;
+          const id = `#${e.target.id}`;
+          links.forEach((x) => x.classList.remove("active"));
+          const link = links.find((a) => a.getAttribute("href") === id);
+          link?.classList.add("active");
+        }
+      },
+      { rootMargin: "-30% 0px -60% 0px", threshold: 0.01 }
+    );
+
+    sections.forEach((s) => obs.observe(s));
+    return () => obs.disconnect();
+  }, [filteredTocItems.length]);
+
+  return (
+    <div className={`usgbc-app${sidebarHidden ? " sidebar-hidden" : ""}`}>
+      <button className="show-sidebar" type="button" onClick={() => setSidebarHidden(false)}>
+        ☰ Menu
+      </button>
+
+      <nav id="sidebar">
+        <div className="brand">
+          <div className="logo" aria-hidden="true" />
+          <h1>ShadeLA</h1>
+          <button
+            type="button"
+            className="hide-btn"
+            title="Hide sidebar"
+            onClick={() => setSidebarHidden(true)}
+          >
+            ×
+          </button>
+        </div>
+
+        <div className="search">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
+            <path
+              d="M21 21l-4.2-4.2M10.5 18a7.5 7.5 0 1 1 0-15 7.5 7.5 0 0 1 0 15Z"
+              stroke="currentColor"
+              strokeWidth="2"
+              strokeLinecap="round"
+            />
+          </svg>
+          <input
+            value={tocQuery}
+            onChange={(e) => setTocQuery(e.target.value)}
+            placeholder="Search sections…"
+          />
+        </div>
+
+        <div className="toc" id="toc">
+          <div className="group">ShadeLA</div>
+          {filteredTocItems.map((i) => (
+            <a key={i.href} href={i.href}>
+              {i.label}
+            </a>
+          ))}
+        </div>
+      </nav>
+
+      <main>
+        <section className="hero" id="overview">
+          <div>
+            <span className="badge">Cad + 3D + Compute</span>
+            <h2>ShadeLA — Map-to-Model Workflow</h2>
+            <p>
+              Select an area on the map, export geometry, and review the result in the 3D viewer. This UI
+              embeds the CadMapper tool and shows the Rhino model output in the Unreal/Rhino panel.
+            </p>
+            <div className="actions">
+              <a className="btn brand" href="#workspace">
+                Open Dashboard
+              </a>
+            </div>
+          </div>
+        </section>
+
+        <section className="panel" id="analytics">
+          <h3>Analytics</h3>
+          <section className="panel panel-analytics">
+            <div className="panel-header">
+              <h2>POWERBI – SHADELA</h2>
+            </div>
+            <div className="panel-body right-body">
+              <div className="right-powerbi">
+                <PowerBIReport selectedArea={selectedArea} />
+              </div>
+              <div className="right-ranking">
+                <RankingTable onSelectArea={handleSelectArea} />
+              </div>
+            </div>
+          </section>
+        </section>
+
+        <section className="panel" id="workspace">
+          <h3>Workspace</h3>
+          <div className="workspace-grid">
+            <section className="panel panel-map panel-map-top">
+              <div className="panel-header">
+                <h2>Map</h2>
+              </div>
+              <div className="panel-body">
+                <div id="Map" style={{ position: "absolute", inset: 0 }}>
+                  <iframe
+                    title="CadMapper"
+                    src={cadMapperUrl}
+                    style={{ width: "100%", height: "100%", border: 0 }}
+                    allow="fullscreen"
+                  />
+                </div>
+              </div>
+            </section>
+
+            <section className="panel panel-model">
+              <div className="panel-header">
+                <h2>Model</h2>
+              </div>
+              <div className="panel-body">
+                <RhinoViewer />
+              </div>
+            </section>
+
+            <section className="panel panel-grasshopper">
+              <div className="panel-header">
+                <h2>Grasshopper</h2>
+              </div>
+              <div className="panel-body">
+                <iframe
+                  title="Grasshopper Canvas"
+                  src={grasshopperUrl}
+                  style={{ width: "100%", height: "100%", border: 0 }}
+                  allow="fullscreen"
+                />
+              </div>
+            </section>
+          </div>
+        </section>
+      </main>
+    </div>
+  );
+}
+
+export default App;

@@ -1,0 +1,42 @@
+obj/
+.vs/
+.git/
+bin/
+packages/
+*.csproj.user
+src/compute.client/python_client/compute_rhino3d.egg-info/
+src/compute.client/python_client/dist/
+*.pyc
+.aws
+venv
+.env
+docker-compose.yml
+
+# docker (old)
+*.lic
+rhino_*.exe
+settings-Scheme__Default.xml
+cloudzoo.json
+
+# computegen
+compute.rhino3d.js
+src/compute.client/docs/javascript/*.rst
+RhinoCompute.cs
+
+# OS artifacts
+.DS_Store
+# vscode python stuff
+/src/tests/.vscode
+**/.vscode/.ropeproject
+/src/ghhops-server-py/dist
+/src/dist
+
+# Web Deploy publish profiles
+*.[Pp]ublish.xml
+*.azurePubxml
+*.pubxml
+*.pubxml.user
+*.publishproj
+
+# Log files created from Rhino.Compute
+/src/rhino.compute/logs/
