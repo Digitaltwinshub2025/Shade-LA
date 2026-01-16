@@ -1,7 +1,6 @@
 import React, { useEffect, useMemo, useState } from "react";
 import "./App.css";
 import PowerBIReport from "./components/PowerBIReport";
-import RankingTable from "./components/RankingTable";
 import RhinoViewer from "./components/RhinoViewer";
 
 function App() {
@@ -21,15 +20,10 @@ function App() {
   const cadMapperUrl = import.meta.env.VITE_CADMAPPER_URL || "http://localhost:3000";
   const grasshopperUrl = import.meta.env.VITE_GRASSHOPPER_URL || "http://localhost:5001";
 
-  const handleSelectArea = (row) => {
-    setSelectedArea(row);
-    // Later you can also send this to Unreal + Map
-  };
-
   const tocItems = useMemo(
     () => [
       { href: "#overview", label: "Overview" },
-      { href: "#analytics", label: "PowerBI + Ranking" },
+      { href: "#analytics", label: "PowerBI" },
       { href: "#workspace", label: "Map + Unreal" },
     ],
     []
@@ -155,9 +149,7 @@ function App() {
           </div>
         </section>
 
-        <section className="panel" id="analytics">
-          <h3>Analytics</h3>
-          <section className="panel panel-analytics">
+          <section id="analytics" className="panel panel-analytics">
             <div className="panel-header">
               <h2>POWERBI – SHADELA</h2>
             </div>
@@ -165,12 +157,8 @@ function App() {
               <div className="right-powerbi">
                 <PowerBIReport selectedArea={selectedArea} />
               </div>
-              <div className="right-ranking">
-                <RankingTable onSelectArea={handleSelectArea} />
-              </div>
             </div>
           </section>
-        </section>
 
         <section className="panel" id="workspace">
           <h3>Workspace</h3>

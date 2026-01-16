@@ -287,7 +287,7 @@ main {
 }
 
 .panel-analytics {
-  height: min(100vh, 900px);
+  height: min(100vh, 1300px);
 }
 
 /* ===================================
@@ -431,13 +431,7 @@ main {
 }
 
 .right-powerbi {
-  flex: 1.2;
-  min-height: 0;
-}
-
-.right-ranking {
   flex: 1;
-  min-height: 0;
 }
 
 .powerbi-wrapper-outer,
