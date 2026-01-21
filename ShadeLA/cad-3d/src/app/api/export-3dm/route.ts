@@ -3,7 +3,7 @@ import proj4 from "proj4";
 
 export const runtime = "nodejs";
 
-// Коэффициент перевода метров в футы (для UTM-координат и высот).
+// Meters-to-feet conversion factor (for UTM coordinates and elevations).
 const M2FT = 3.280839895;
 
 async function fetchDemForBbox(bbox: [number, number, number, number]): Promise<Buffer | null> {

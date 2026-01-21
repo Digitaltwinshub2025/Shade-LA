@@ -4,7 +4,7 @@ import path from "path";
 
 export const runtime = "nodejs";
 
-// GeoJSON экспорт из cb_2020_06_tract_500k.shp
+// GeoJSON export from cb_2020_06_tract_500k.shp
 const GEOJSON_PATH = path.join(process.cwd(), "cb_2020_06_tract_500k.json");
 
 let cachedGeojson: any | null = null;
@@ -24,7 +24,7 @@ export async function GET(req: NextRequest) {
       return new Response(JSON.stringify({ error: "geoid_required" }), { status: 400 });
     }
 
-    // Нормализуем GEOID до 11 символов с ведущими нулями, чтобы совпадать с GeoJSON
+    // Normalize GEOID to 11 chars with leading zeros to match GeoJSON
     const geoid = rawGeoid.toString().padStart(11, "0");
 
     const gj = await loadGeojson();

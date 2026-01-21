@@ -27,7 +27,7 @@ async function loadPlacesRaw(): Promise<any> {
   return data;
 }
 
-// Примерная рамка Лос-Анджелес каунти (широта/долгота)
+// Approximate Los Angeles County bounding box (lat/lon)
 const LA_BBOX = {
   west: -119.2,
   south: 33.4,

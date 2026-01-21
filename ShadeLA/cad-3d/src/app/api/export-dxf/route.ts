@@ -102,13 +102,13 @@ function utmFromLonLat(lon: number, lat: number) {
   return { epsg, def, zone, isNorth };
 }
 
-// Коэффициент перевода метров в футы для всех координат и высот,
-// которые до этого считались в метрах (UTM, высоты зданий и т.п.).
-const M2FT = 3.280839895; // 1 м = 3.280839895 ft
+// Meters-to-feet conversion factor for coordinates and elevations
+// that were previously treated as meters (UTM, building heights, etc.).
+const M2FT = 3.280839895; // 1 m = 3.280839895 ft
 
-// Временная калибровка DEM-высот под более реалистичные значения (по нескольким контрольным точкам).
-// baseSample возвращает высоту DEM в метрах (~2900–3000 м). По измерениям в ЛА хотим получить
-// порядка 100–120 м над уровнем моря, поэтому используем линейное приближение h ≈ a*z + b.
+// Temporary calibration of DEM elevations to more realistic values (based on a few control points).
+// baseSample returns DEM height in meters (~2900–3000 m). Based on measurements in LA we want
+// about 100–120 m above sea level, so we use a linear approximation h ≈ a*z + b.
 function demToHeightMeters(zMeters: number): number {
   const a = -0.48;
   const b = 1553;
@@ -189,13 +189,13 @@ export async function POST(req: NextRequest) {
     // Step 1: attempt to fetch USGS DEM for this bbox (logging only, no behavior change yet)
     let demInfo = "none";
     let demBuf: Buffer | null = null;
-    // baseSample: DEM height above min DEM, без масштабирования
+    // baseSample: DEM height above min DEM, without scaling
     let baseSample = (lon: number, lat: number): number => 0;
-    // sampleTerrain: рельеф с z-экспонентой
+    // sampleTerrain: terrain height (with Z exaggeration)
     let sampleTerrain = (lon: number, lat: number): number => 0;
-    // sampleBuilding: высота под зданиями (реалистично, без доп. масштабирования)
+    // sampleBuilding: height under buildings (realistic, without extra scaling)
     let sampleBuilding = (lon: number, lat: number): number => 0;
-    // Общий вертикальный масштаб в футах для рельефа и зданий
+    // Global vertical scale (in feet) for terrain and buildings
     let terrainScaleFeet = 1.5;
     try {
       demBuf = await fetchDemForBbox(bbox);
@@ -246,12 +246,12 @@ export async function POST(req: NextRequest) {
           return isNaN(v) ? 0 : v;
         })();
 
-        // Вертикальный масштаб DEM. На практике USGS DEM уже в метрах, поэтому
-        // фиксируем масштаб = 1, чтобы не раздувать высоты дополнительным коэффициентом.
+        // DEM vertical scale. In practice USGS DEM is already in meters,
+        // so we keep scale = 1 to avoid inflating heights with an extra factor.
         const demVerticalScale = 1;
 
-        // Максимальная высота рельефа (метры).
-        // Если не задано (<=0 или NaN) — не ограничиваем, используем полный DEM.
+        // Maximum terrain height (meters).
+        // If not provided (<=0 or NaN) — do not clamp; use the full DEM.
         const maxTerrainHeightMeters = (() => {
           const src = (body && (body as any).terrainMaxHeight) != null
             ? (body as any).terrainMaxHeight
@@ -260,8 +260,8 @@ export async function POST(req: NextRequest) {
           return isNaN(v) || v <= 0 ? Number.POSITIVE_INFINITY : v;
         })();
 
-        // билинейная интерполяция DEM по исходным значениям GeoTIFF;
-        // если maxTerrainHeightMeters конечен, дополнительно обрезаем высоты сверху.
+        // Bilinear interpolation of DEM from raw GeoTIFF values;
+        // if maxTerrainHeightMeters is finite, additionally clamp heights from above.
         baseSample = (lon: number, lat: number): number => {
           if (maxX === minX || maxY === minY) return 0;
           const fx = (lon - minX) / (maxX - minX);
@@ -295,14 +295,14 @@ export async function POST(req: NextRequest) {
           return zClamped;
         };
 
-        // Общий вертикальный масштаб в футах: позволяет чуть усилить рельеф,
-        // не ломая связь зданий и дорог с Terrain_3D.
+        // Global vertical scale in feet: allows slightly boosting relief
+        // without breaking the alignment of buildings and roads with Terrain_3D.
         terrainScaleFeet = (() => {
           const src = (body && (body as any).terrainScaleFeet) != null
             ? (body as any).terrainScaleFeet
             : process.env.TERRAIN_SCALE_FEET;
           const v = Number(src);
-          return isNaN(v) || v <= 0 ? 1.5 : v; // лёгкое преувеличение по умолчанию
+          return isNaN(v) || v <= 0 ? 1.5 : v; // slight exaggeration by default
         })();
 
         const clearanceFt = (() => {
@@ -313,8 +313,8 @@ export async function POST(req: NextRequest) {
           return isNaN(v) ? 0.5 : Math.max(0, v);
         })();
 
-        // ОДНА формула высоты для всего: Terrain_3D, здания и дороги.
-        // h_dem -> демToHeightMeters -> футы. Здания получают небольшой clearance над рельефом.
+        // ONE height formula for everything: Terrain_3D, buildings, and roads.
+        // h_dem -> demToHeightMeters -> feet. Buildings get a small clearance above terrain.
 
         const heightFeetFromDem = (lon: number, lat: number): number => {
           const zRaw = baseSample(lon, lat);
@@ -337,13 +337,13 @@ export async function POST(req: NextRequest) {
           { name: "northEast", lon: e, lat: n },
         ].map((p) => ({ ...p, z: sampleTerrain(p.lon, p.lat) }));
 
-        // DEBUG: замер DEM в точках, которые пользователь отметил как вершины, и вокруг них
-        const dLat = 0.0005; // ~55 м
+        // DEBUG: sample DEM at user-marked peak points and around them
+        const dLat = 0.0005; // ~55 m
         const dLon = 0.0005;
         const peakPoints = [
           { name: "p1_cross", lat: 34.123551, lon: -118.375425 },
-          { name: "p2",       lat: 34.132235, lon: -118.385379 },
-          { name: "p3",       lat: 34.101615, lon: -118.365512 },
+          { name: "p2_top", lat: 34.123789, lon: -118.375437 },
+          { name: "p3_summit", lat: 34.124242, lon: -118.375160 },
         ];
         const peaks = peakPoints.flatMap((p) => {
           const base = { name: p.name, lon: p.lon, lat: p.lat };
@@ -416,7 +416,7 @@ export async function POST(req: NextRequest) {
     const toLonLat = proj4(utm.def, "WGS84");
     const originUtm = toUtm.forward([lon0, lat0]);
 
-    // Горизонтальное масштабирование вдоль локальной оси Y (опционально, только для 3D)
+    // Horizontal scaling along the local Y axis (optional, 3D only)
     const horizontalScaleY = (() => {
       const src = (body && (body as any).horizontalScaleY) != null
         ? (body as any).horizontalScaleY
@@ -433,7 +433,7 @@ export async function POST(req: NextRequest) {
 
     // Note: dxf-writer does not expose a comment/note API; skipping metadata embedding for now.
 
-    // Layers (2D план): дома — серые, дороги — чёрные
+    // Layers (2D plan): buildings are gray, roads are black
     dxf.addLayer("Buildings_Footprints", Drawing.ACI.GRAY, "CONTINUOUS");
     dxf.addLayer("Roads_Motorway", Drawing.ACI.BLACK, "CONTINUOUS");
     dxf.addLayer("Roads_Primary", Drawing.ACI.BLACK, "CONTINUOUS");
@@ -580,12 +580,12 @@ export async function POST(req: NextRequest) {
       const earcut = (await import("earcut")).default as any;
       const zEx = (()=>{
         const v = Number((body && body.terrainExaggeration)!=null ? body.terrainExaggeration : (process.env.TERRAIN_Z_EXAGGERATION ?? 5));
-        return isNaN(v) || v<=0 ? 5 : v; // заметное, но не безумное преувеличение
+        return isNaN(v) || v<=0 ? 5 : v; // noticeable, but not insane exaggeration
       })();
 
-      // Временная калибровка DEM-высот под более реалистичные значения (по нескольким контрольным точкам).
-      // baseSample возвращает высоту DEM в метрах (~2900–3000 м). По измерениям в ЛА хотим получить
-      // порядка 100–120 м над уровнем моря, поэтому используем линейное приближение h ≈ a*z + b.
+      // Temporary calibration of DEM elevations to more realistic values (based on a few control points).
+      // baseSample returns DEM height in meters (~2900–3000 m). Based on measurements in LA we want
+      // about 100–120 m above sea level, so we use a linear approximation h ≈ a*z + b.
       const demToHeightMeters = (zMeters: number): number => {
         const a = -0.48;
         const b = 1553;
@@ -612,9 +612,9 @@ export async function POST(req: NextRequest) {
           const [X01, Y01] = toUtm.forward([lon00, lat01]);
           const [X11, Y11] = toUtm.forward([lon10, lat01]);
 
-          // Используем ту же формулу высоты, что и в sampleTerrain/sampleBuilding:
-          // DEM -> demToHeightMeters -> футы * terrainScaleFeet. Так Terrain_3D и
-          // здания/дороги находятся в одной высотной системе и одинаково масштабируются.
+          // Use the same height formula as in sampleTerrain/sampleBuilding:
+          // DEM -> demToHeightMeters -> feet * terrainScaleFeet. This keeps Terrain_3D and
+          // buildings/roads in the same elevation system and scaled consistently.
           const z00 = demToHeightMeters(baseSample(lon00, lat00)) * M2FT * terrainScaleFeet;
           const z10 = demToHeightMeters(baseSample(lon10, lat00)) * M2FT * terrainScaleFeet;
           const z01 = demToHeightMeters(baseSample(lon00, lat01)) * M2FT * terrainScaleFeet;
@@ -682,8 +682,8 @@ export async function POST(req: NextRequest) {
             const x = flat[i], y = flat[i+1];
             let z0 = 0;
             try {
-              // x,y здесь уже в футах и с учётом horizontalScaleY по Y.
-              // Чтобы вернуться в UTM-координаты (метры), нужно инвертировать это преобразование.
+              // x,y are already in feet and include horizontalScaleY along Y.
+              // To get back to UTM coordinates (meters), we need to invert this transform.
               const xU = x / M2FT + originUtm[0];
               const yU = y / (horizontalScaleY * M2FT) + originUtm[1];
               const [lon,lat] = toLonLat.forward([xU, yU]);
@@ -727,7 +727,7 @@ export async function POST(req: NextRequest) {
       }
 
       // 3D roads as narrow ribbons following DEM (sampleBuilding), on layer Roads_3D
-      const roadHalfWidth = 2; // 4 m total width, условно
+      const roadHalfWidth = 2; // ~4 m total width (approx)
       const makeRoadFace = (
         ax: number, ay: number, az: number,
         bx: number, by: number, bz: number
@@ -759,8 +759,8 @@ export async function POST(req: NextRequest) {
             const y = (yU - originUtm[1]) * horizontalScaleY * M2FT;
             let z = 0;
             try {
-              // Для DEM нужно брать исходные UTM-координаты в метрах, без масштабирования
-              // вдоль Y и без перевода в футы.
+              // For DEM sampling we must use the original UTM coordinates in meters,
+              // without Y scaling and without converting to feet.
               const [lonSample, latSample] = toLonLat.forward([xU, yU]);
               z = sampleBuilding(lonSample, latSample) ?? 0;
             } catch {}
@@ -793,13 +793,13 @@ export async function POST(req: NextRequest) {
       push(0,"TABLE"); push(2,"LTYPE"); push(70,1);
       push(0,"LTYPE"); push(2,"CONTINUOUS"); push(70,0); push(3,"Solid line"); push(72,65); push(73,0); push(40,0.0);
       push(0,"ENDTAB");
-      // LAYER table (3D дома, рельеф и дороги)
+      // LAYER table (3D buildings, terrain, and roads)
       push(0,"TABLE"); push(2,"LAYER"); push(70,13);
       const addLayer = (name:string, color:number) => { push(0,"LAYER"); push(2,name); push(70,0); push(62,color); push(6,"CONTINUOUS"); };
-      // 8 = серый, 7 = чёрный/белый в зависимости от фона
-      addLayer("Buildings_3D", 8); // дома — серые
-      addLayer("Terrain_3D", 8);   // рельеф — серый
-      addLayer("Roads_3D", 7);     // 3D-дороги — чёрные
+      // 8 = gray, 7 = black/white depending on background
+      addLayer("Buildings_3D", 8); // buildings - gray
+      addLayer("Terrain_3D", 8);   // terrain - gray
+      addLayer("Roads_3D", 7);     // 3D roads - black
       // Parks green, Water blue
       addLayer("Parks", 3);
       addLayer("Water", 5);

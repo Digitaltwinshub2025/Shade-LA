@@ -123,7 +123,7 @@ export async function GET(req: NextRequest) {
     const { header, lines } = await loadCsv();
 
     if (!geoid) {
-      // список для селекта: только Лос-Анджелес + только те GEOID, у которых есть геометрия в GeoJSON
+      // List for the select: Los Angeles only + only GEOIDs that have geometry in GeoJSON
       const geoids = await loadGeoGEOIDs();
       const items = lines
         .map((row) => buildRecord(header, row))

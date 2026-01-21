@@ -19,14 +19,14 @@ export async function POST(req: NextRequest) {
         way["building"](${s},${w},${n},${e});
         relation["building"](${s},${w},${n},${e});
 
-        // дороги
+        // roads
         way["highway"](${s},${w},${n},${e});
 
-        // зелёные зоны / парки
+        // green areas / parks
         way["landuse"="grass"](${s},${w},${n},${e});
         way["leisure"="park"](${s},${w},${n},${e});
 
-        // вода
+        // water
         way["natural"="water"](${s},${w},${n},${e});
         way["waterway"="riverbank"](${s},${w},${n},${e});
       );

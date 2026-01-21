@@ -53,13 +53,13 @@ export default function Dashboard() {
   const [ghResponseText, setGhResponseText] = useState<string>("");
   const [ghIsLoading, setGhIsLoading] = useState<boolean>(false);
 
-  // вспомогательная функция: нормализовать числовой индекс 0..1
+  // Helper: normalize a numeric index to 0..1
   const getIndexFactor = () => {
     if (!selectedTractData) return 0.5;
     const raw = selectedTractData[colorBy];
     const v = parseFloat(String(raw ?? ""));
     if (!Number.isFinite(v)) return 0.5;
-    // простая нормализация: ожидаем индексы примерно 0..100
+    // Simple normalization: expect indices roughly in 0..100
     const clamped = Math.max(0, Math.min(100, v));
     return clamped / 100;
   };
@@ -79,7 +79,7 @@ export default function Dashboard() {
         // eslint-disable-next-line no-console
         console.log("Rhino.Compute client configured with URL:", serverUrl);
 
-        // Инициализируем three.js сцену в rhinoCanvas
+        // Initialize a three.js scene inside rhinoCanvas
         const canvas = rhinoCanvasRef.current;
         if (canvas && !rendererRef.current) {
           const renderer = new THREE.WebGLRenderer({ canvas, antialias: true });
@@ -90,7 +90,7 @@ export default function Dashboard() {
           renderer.setSize(width, height, false);
 
           const scene = new THREE.Scene();
-          // Светлый фон, ближе к масcинговому виду
+          // Light background, closer to a massing-style view
           scene.background = new THREE.Color("#f4f4f4");
 
           const camera = new THREE.PerspectiveCamera(45, width / height, 0.1, 1000);
@@ -178,12 +178,12 @@ export default function Dashboard() {
           canvas.addEventListener("mouseleave", handleMouseUp);
           canvas.addEventListener("mousemove", handleMouseMove);
 
-          // При необходимости можно добавить AxesHelper, но сейчас он выключен,
-          // чтобы не мешал восприятию города.
+          // You can add AxesHelper if needed, but it is currently disabled
+          // so it does not interfere with perceiving the city.
 
-          // NOTE: для упрощения сейчас не удаляем обработчики при размонтировании,
-          // так как страница одностраничная. Если понадобится, можно вынести
-          // ссылки на handlers в useRef и снимать их в cleanup эффекта.
+          // NOTE: for simplicity we currently do not remove handlers on unmount,
+          // because this is a single-page screen. If needed, handlers can be
+          // stored in useRef and removed in the effect cleanup.
         }
       } catch (err) {
         // eslint-disable-next-line no-console
@@ -197,7 +197,7 @@ export default function Dashboard() {
     };
   }, []);
 
-  // Загрузка списка трактов для правой панели
+  // Load tracts list for the right panel
   useEffect(() => {
     let cancelled = false;
     const load = async () => {
@@ -222,7 +222,7 @@ export default function Dashboard() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // Загрузка данных выбранного тракта
+  // Load data for the selected tract
   useEffect(() => {
     if (!selectedGeoid) return;
     let cancelled = false;
@@ -245,7 +245,7 @@ export default function Dashboard() {
   const handleExportDxfBBox = async ([west, south, east, north]: [number, number, number, number]) => {
     if (!sceneRef.current || !cameraRef.current) return;
 
-    // Очистить предыдущую геометрию (бокс/здания)
+    // Clear previous geometry (bbox / buildings)
     if (boxRef.current) {
       sceneRef.current.remove(boxRef.current);
       boxRef.current.geometry.dispose();
@@ -253,7 +253,7 @@ export default function Dashboard() {
       boxRef.current = null;
     }
 
-    // Удаляем все старые здания (оставляем только свет и оси)
+    // Remove all old buildings (keep only lights and axes)
     const persistent = new Set<THREE.Object3D>();
     sceneRef.current.traverse((obj) => {
       if (obj instanceof THREE.AmbientLight || obj instanceof THREE.DirectionalLight || obj instanceof THREE.AxesHelper) {
@@ -278,16 +278,16 @@ export default function Dashboard() {
       const allFeatures: any[] = geojson.features || [];
       if (!allFeatures.length) return;
 
-      // --- ЗДАНИЯ ---
-      // фильтруем только building-фичи, остальное пойдёт в контекст (дороги/парки/вода)
+      // --- BUILDINGS ---
+      // Filter only building features; the rest goes to context (roads/parks/water)
       const buildingFeatures = allFeatures.filter((f) => {
         const props: any = f.properties || {};
         return props.building || props["building:part"] || props["building:use"];
       });
       if (!buildingFeatures.length) return;
 
-      // Для браузера рендерим только 3000 самых высоких зданий,
-      // DXF при этом по-прежнему генерится по всем в бекенде.
+      // For the browser we render only the 3000 tallest buildings,
+      // while DXF is still generated for all buildings on the backend.
       const featuresWithHeight = buildingFeatures.map((f) => {
         const props: any = f.properties || {};
         let h = 0;
@@ -314,17 +314,17 @@ export default function Dashboard() {
       const parksGroup = new THREE.Group();
       const waterGroup = new THREE.Group();
 
-      // центрируем координаты относительно центра bbox
+      // Center coordinates relative to bbox center
       const cx = (west + east) / 2;
       const cy = (south + north) / 2;
       const spanLon = Math.max(1e-6, east - west);
       const spanLat = Math.max(1e-6, north - south);
-      // вписываем город в условный квадрат ~[-50,50]x[-50,50]
+      // Fit the city into a conceptual square ~[-50,50]x[-50,50]
       const halfSize = 50;
 
       const allPoints: THREE.Vector3[] = [];
 
-      // --- ЗДАНИЯ ---
+      // --- BUILDINGS ---
       for (const f of features) {
         const geom = f.geometry;
         if (!geom || (geom.type !== "Polygon" && geom.type !== "MultiPolygon")) continue;
@@ -337,7 +337,7 @@ export default function Dashboard() {
 
           const shapePts: THREE.Vector2[] = [];
           for (const [lon, lat] of ring) {
-            const nx = (lon - cx) / spanLon; // -0.5..0.5 примерно
+            const nx = (lon - cx) / spanLon; // roughly -0.5..0.5
             const ny = (lat - cy) / spanLat;
             const x = nx * halfSize * 2;
             const y = ny * halfSize * 2;
@@ -361,20 +361,20 @@ export default function Dashboard() {
             h = 10.0;
           }
 
-          // Калибровка высоты: ближе к массинговой модели,
-          // без чрезмерных "игл"
+          // Height calibration: closer to a massing model,
+          // without excessive "spikes"
           const height = Math.min(30, Math.max(2, h / 12));
 
           const extrudeGeom = new THREE.ExtrudeGeometry(shape, {
             depth: height,
             bevelEnabled: false,
           });
-          // По умолчанию extrude идёт вдоль +Z. Повернём так, чтобы высота шла по +Y.
+          // By default extrude goes along +Z. Rotate so height goes along +Y.
           extrudeGeom.rotateX(-Math.PI / 2);
 
-          const baseColor = new THREE.Color(0xb0b0b0); // базовый светло-серый
+          const baseColor = new THREE.Color(0xb0b0b0); // base light gray
           const factor = getIndexFactor();
-          const tonedColor = baseColor.clone().multiplyScalar(0.7 + factor * 0.6); // немного темнее/светлее
+          const tonedColor = baseColor.clone().multiplyScalar(0.7 + factor * 0.6); // slightly darker/lighter
           const mat = new THREE.MeshStandardMaterial({
             color: tonedColor,
             metalness: 0.1,
@@ -392,7 +392,7 @@ export default function Dashboard() {
         }
       }
 
-      // --- ДОРОГИ, ПАРКИ, ВОДА ---
+      // --- ROADS, PARKS, WATER ---
       for (const f of allFeatures) {
         const geom = f.geometry;
         const props: any = f.properties || {};
@@ -406,7 +406,7 @@ export default function Dashboard() {
           return new THREE.Vector3(x, y, 0);
         };
 
-        // Дороги: highway как линии по земле
+        // Roads: highways as ground polylines
         if (props.highway) {
           if (geom.type === "LineString") {
             const pts = (geom.coordinates as [number, number][]).map(([lon, lat]) => projectPoint(lon, lat));
@@ -431,7 +431,7 @@ export default function Dashboard() {
           continue;
         }
 
-        // Парки / зелёные зоны
+        // Parks / green areas
         const isPark = props.leisure === "park" || props.landuse === "grass";
         const isWater = props.natural === "water" || props.waterway === "riverbank";
 
@@ -526,7 +526,7 @@ export default function Dashboard() {
 
   return (
     <div className={styles.appGrid}>
-      {/* Верхний левый: Rhino 3D viewer */}
+      {/* Top left: Rhino 3D viewer */}
       <section className={`${styles.panel} ${styles.rhinoPanel}`}>
         <div className={styles.panelHeader}>Rhino 3D View</div>
         <canvas
@@ -536,7 +536,7 @@ export default function Dashboard() {
         />
       </section>
 
-      {/* Верхний правый: Grasshopper / UI */}
+      {/* Top right: Grasshopper / UI */}
       <section className={`${styles.panel} ${styles.ghPanel}`}>
         <div className={styles.panelHeader}>Analytics &amp; Coloring</div>
         <div id="gh-ui" className={styles.ghUi}>
@@ -726,7 +726,7 @@ export default function Dashboard() {
         </div>
       </section>
 
-      {/* Нижний: карта Kadmapper / Cesium */}
+      {/* Bottom: Kadmapper / Cesium map */}
       <section className={`${styles.panel} ${styles.mapPanel}`}>
         <div className={styles.panelHeader}>Kadmapper Map</div>
         <div id="map-container" className={styles.mapContainer}>

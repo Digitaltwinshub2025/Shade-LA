@@ -93,7 +93,7 @@ export default function CesiumMap({
     // prevent context menu on right click
     containerRef.current.addEventListener('contextmenu', (e) => e.preventDefault());
 
-    // OSM Standard: классический стиль (дороги + зелёные зоны), как в референсе
+    // OSM Standard: classic style (roads + green areas), as in the reference
     const osm = new Cesium.UrlTemplateImageryProvider({
       url: "https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png",
       credit: new Cesium.Credit("© OpenStreetMap contributors"),
@@ -111,13 +111,13 @@ export default function CesiumMap({
       const scene = viewer.scene;
       let cartesian: Cesium.Cartesian3 | undefined | null = undefined;
 
-      // Основной вариант: луч + пересечение с "глобусом"
+      // Primary approach: ray + intersection with the "globe"
       const ray = scene.camera.getPickRay(position);
       if (ray) {
         cartesian = scene.globe.pick(ray, scene);
       }
 
-      // В 2D/WebMercator иногда pick даёт null — пробуем камеру по эллипсоиду
+      // In 2D/WebMercator, pick may return null — fall back to camera.pickEllipsoid
       if (!cartesian) {
         cartesian = scene.camera.pickEllipsoid(
           position,
@@ -141,7 +141,7 @@ export default function CesiumMap({
     }
 
     function clampToMax3km(a: Cesium.Cartographic, b: Cesium.Cartographic): Cesium.Rectangle {
-      const max = 3000.0; // 3 km максимум по каждой оси
+      const max = 3000.0; // 3 km max per axis
 
       // compute horizontal (E-W) distance at constant latitude = a.latitude
       const horizGeodesic = new Cesium.EllipsoidGeodesic(
@@ -182,7 +182,7 @@ export default function CesiumMap({
       return new Cesium.Rectangle(west, south, east, north);
     }
 
-    // Drag: обновляем вторую точку по мыши
+    // Drag: update the second point from mouse position
     handler.setInputAction((movement: Cesium.ScreenSpaceEventHandler.MotionEvent) => {
       if (drawAoiModeRef.current) {
         if (!clickDrawingRef.current || !clickStartRef.current) return;
@@ -279,7 +279,7 @@ export default function CesiumMap({
     };
   }, []);
 
-  // Загрузка списка городов (places) для автодополнения
+  // Load cities (places) list for autocomplete
   useEffect(() => {
     let cancelled = false;
     const load = async () => {
