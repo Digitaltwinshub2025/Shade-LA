@@ -1,83 +1,95 @@
-# ShadeLA 
+# Shade-LA 🌳☀️
 
-## Files
+**Shade-LA** is a digital twin–based visualization and analysis platform focused on urban shade infrastructure in Los Angeles. The project integrates geospatial data, 3D visualization, parametric design tools, and analytics dashboards to support heat-mitigation planning, environmental analysis, and design exploration.
 
-- `index.html` — the page layout
-- `styles.css` — styling
-- `app.js` — where you paste your embed URLs
+🔗 **Live Site:**  
+https://digitaltwinshub2025.github.io/Shade-LA/
 
-## Add your embeds
+---
 
-Open `app.js` and paste URLs into the `EMBEDS` object.
+## 📌 Project Overview
 
-### Power BI
+Shade-LA brings together multiple tools and visual layers to explore shade coverage, canopy assets, and environmental performance. It is designed for researchers, planners, designers, and students interested in **urban heat mitigation**, **digital twins**, and **data-driven design**.
 
-- In Power BI, get the iframe `src` from **Publish to web** (or your org’s embed option).
-- Paste it here:
+The platform embeds external tools and media into a single, accessible interface.
 
-```js
-powerbi: {
-  type: "iframe",
-  src: "PASTE_POWER_BI_IFRAME_SRC_HERE",
-},
-```
+---
 
-### Area Map
+## 🚀 Features
 
-- If you have an ArcGIS / Mapbox / Google My Maps / other map that provides an iframe URL, paste it here:
+- 🗺️ **Area Map** – Interactive geospatial context  
+- 🎮 **Unreal Engine Embed** – Real-time 3D visualization  
+- 🧩 **Grasshopper Embed** – Parametric design preview  
+- 🌳 **Tree & Canopy Assets** – Visual shade elements  
+- 📊 **Power BI Dashboard** – Embedded analytics and insights  
+- 📝 **Project Notes** – Documentation and annotations  
+- 📂 **Slides & Files** – Supporting project materials  
 
-```js
-areaMap: {
-  type: "iframe",
-  src: "PASTE_MAP_IFRAME_SRC_HERE",
-},
-```
+---
 
-### Unreal Engine
+## 🧱 Tech Stack
 
-If you have **Pixel Streaming** (or another hosted experience):
+- **HTML / CSS / JavaScript**
+- **GitHub Pages** (deployment)
+- **Embedded Tools**
+  - Unreal Engine
+  - Grasshopper
+  - Power BI
+- **Static Assets** (images, models, slides)
 
-- If it works in an iframe:
+---
 
-```js
-unreal: {
-  type: "iframe",
-  src: "PASTE_UNREAL_URL_HERE",
-},
-```
+## 📁 Project Structure
 
-- If it does **not** allow iframes, use a link button:
+Shade-LA/
+│
+├── index.html # Main single-page application
+├── app.js # Embed logic and UI behavior
+├── images/ # Tree, canopy, and visual assets
+└── README.md # Project documentation
 
-```js
-unreal: {
-  type: "link",
-  src: "PASTE_UNREAL_URL_HERE",
-  label: "Open Unreal Experience",
-},
-```
 
-### Grasshopper
+---
 
-- If you’re using ShapeDiver or another hosted viewer that provides an iframe URL:
+## 🛠️ Running Locally
 
-```js
-grasshopper: {
-  type: "iframe",
-  src: "PASTE_GRASSHOPPER_IFRAME_SRC_HERE",
-},
-```
+No build process required.
 
-## Preview locally
+1. Clone the repository:
+   ```bash
+   git clone https://github.com/DigitalTwinsHub2025/Shade-LA.git
+Open index.html directly
+or
 
-Any static server works.
+Serve locally using a simple web server:
 
-If you have Python:
+npx http-server
+📌 Notes
+Some embedded content (Power BI, Unreal Engine) requires valid iframe URLs and internet access.
 
-```bash
-python -m http.server 8080
-```
+Replace images or embeds by updating the images/ folder and app.js.
 
-Then open:
+This project is primarily a visualization and exploration tool, not a backend application.
 
-- http://localhost:8080
+🧠 Use Cases
+Urban heat mitigation studies
 
+Digital twin demonstrations
+
+Environmental and spatial analysis
+
+Academic research and studio projects
+
+Data-driven urban design workflows
+
+📄 License
+This project is provided for educational and research purposes.
+(Add a license here if applicable — e.g., MIT License.)
+
+👤 Author / Team
+Digital Twins Hub 2025
+Shade-LA Project
+
+🤝 Contributions
+Contributions, ideas, and improvements are welcome.
+Please open an issue or submit a pull request.
