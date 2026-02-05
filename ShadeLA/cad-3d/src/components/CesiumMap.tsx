@@ -27,6 +27,7 @@ export default function CesiumMap({
   const [places, setPlaces] = useState<{ GEOID: string; NAME: string }[]>([]);
   const [selectedPlaceId, setSelectedPlaceId] = useState<string>("");
   const [cityFilter, setCityFilter] = useState<string>("");
+  const [webglError, setWebglError] = useState<string | null>(null);
 
   // keep ref in sync so Cesium event handlers see current mode
   useEffect(() => {
@@ -58,21 +59,27 @@ export default function CesiumMap({
     (window as any).CESIUM_BASE_URL = process.env.NEXT_PUBLIC_CESIUM_BASE_URL || "/cesium";
     Cesium.Ion.defaultAccessToken = process.env.NEXT_PUBLIC_CESIUM_ION_TOKEN as string;
 
-    const viewer = new Cesium.Viewer(containerRef.current, {
-      timeline: false,
-      animation: false,
-      baseLayerPicker: false,
-      geocoder: false,
-      sceneModePicker: false,
-      homeButton: false,
-      navigationHelpButton: false,
-      selectionIndicator: false,
-      infoBox: false,
-      scene3DOnly: false,
-      sceneMode: Cesium.SceneMode.SCENE2D,
-      mapProjection: new Cesium.WebMercatorProjection(),
-      terrainProvider: new Cesium.EllipsoidTerrainProvider(),
-    });
+    let viewer: Cesium.Viewer;
+    try {
+      viewer = new Cesium.Viewer(containerRef.current, {
+        timeline: false,
+        animation: false,
+        baseLayerPicker: false,
+        geocoder: false,
+        sceneModePicker: false,
+        homeButton: false,
+        navigationHelpButton: false,
+        selectionIndicator: false,
+        infoBox: false,
+        scene3DOnly: false,
+        sceneMode: Cesium.SceneMode.SCENE2D,
+        mapProjection: new Cesium.WebMercatorProjection(),
+        terrainProvider: new Cesium.EllipsoidTerrainProvider(),
+      });
+    } catch (e: any) {
+      setWebglError(String(e?.message || e));
+      return;
+    }
 
     viewerRef.current = viewer;
 
@@ -435,6 +442,31 @@ export default function CesiumMap({
   return (
     <div style={{ position: "relative", width: "100%", height: "100%" }}>
       <div ref={containerRef} style={{ position: "absolute", inset: 0 }} />
+      {webglError ? (
+        <div
+          style={{
+            position: "absolute",
+            inset: 0,
+            zIndex: 50,
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            padding: 16,
+            background: "rgba(0,0,0,0.7)",
+            color: "rgba(255,255,255,0.95)",
+            textAlign: "center",
+          }}
+        >
+          <div style={{ maxWidth: 560, display: "flex", flexDirection: "column", gap: 10 }}>
+            <div style={{ fontSize: 14, fontWeight: 600 }}>WebGL initialization failed</div>
+            <div style={{ fontSize: 12, opacity: 0.9, lineHeight: 1.4 }}>
+              This map requires WebGL. Please enable hardware acceleration in your browser or update GPU drivers, then
+              reload the page.
+            </div>
+            <div style={{ fontSize: 11, opacity: 0.85, wordBreak: "break-word" }}>{webglError}</div>
+          </div>
+        </div>
+      ) : null}
       <div
         style={{
           position: "absolute",

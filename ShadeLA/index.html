@@ -8,6 +8,44 @@
   </head>
   <body>
     <div id="root"></div>
+    <script>
+      (function () {
+        try {
+          if (typeof console === "undefined") return;
+
+          var safeBind = function (fn) {
+            if (typeof fn === "function") return fn.bind(console);
+            if (typeof console.log === "function") return console.log.bind(console);
+            return function () {};
+          };
+
+          var _error = safeBind(console.error);
+          var _warn = safeBind(console.warn);
+
+          Object.defineProperty(console, "error", {
+            configurable: true,
+            get: function () {
+              return _error;
+            },
+            set: function (v) {
+              if (typeof v === "function") _error = v.bind(console);
+            },
+          });
+
+          Object.defineProperty(console, "warn", {
+            configurable: true,
+            get: function () {
+              return _warn;
+            },
+            set: function (v) {
+              if (typeof v === "function") _warn = v.bind(console);
+            },
+          });
+        } catch (e) {
+          // ignore
+        }
+      })();
+    </script>
     <script type="module" src="/src/main.tsx"></script>
   </body>
 </html>

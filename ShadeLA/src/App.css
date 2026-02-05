@@ -420,6 +420,195 @@ main {
 }
 
 /* ===================================
+   RESOURCES SECTION (STATIC CONTENT)
+=================================== */
+
+.resources-body {
+  padding: 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  overflow: visible;
+}
+
+.resources-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 14px;
+}
+
+/* --- Original (beige) styles for the CANOPY/TREES block only --- */
+main #canopy-trees .resources-original {
+  --res-bg: linear-gradient(180deg, #0c1320, #0a111b);
+  --res-card: linear-gradient(180deg, #0c1320, #0a111b);
+  --res-ink: #e6f0ff;
+  --res-border: rgba(255, 255, 255, 0.12);
+  --res-radius: 14px;
+}
+
+main #canopy-trees .resources-original .grid-2 {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(520px, 100%), 1fr));
+  gap: 18px;
+}
+
+main #canopy-trees .resources-original .card {
+  background: var(--res-card);
+  border: 1px solid var(--res-border);
+  border-radius: var(--res-radius);
+  overflow: hidden;
+  color: var(--res-ink);
+}
+
+main #canopy-trees .resources-original .card__header {
+  padding: 16px 16px 12px;
+  background: var(--res-card);
+}
+
+main #canopy-trees .resources-original .section-title {
+  margin: 0;
+  font-size: 22px;
+  letter-spacing: 0.02em;
+}
+
+main #canopy-trees .resources-original .embed {
+  width: 100%;
+  height: clamp(240px, 28vw, 420px);
+  border-top: 1px solid var(--res-border);
+  background: var(--res-bg);
+  position: relative;
+}
+
+@media (min-width: 1600px) {
+  main #canopy-trees .resources-original .embed {
+    height: clamp(384px, 31vw, 672px);
+  }
+}
+
+main #canopy-trees .resources-original .slideshow {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+}
+
+main #canopy-trees .resources-original .slideshow__img {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: center;
+  opacity: 0;
+  transition: opacity 600ms ease;
+}
+
+main #canopy-trees .resources-original .slideshow__img.is-active {
+  opacity: 1;
+}
+
+main #canopy-trees .resources-original .embed__placeholder {
+  position: absolute;
+  inset: 0;
+  display: none;
+}
+
+main #canopy-trees .resources-original .embed-actions {
+  border-top: 1px solid var(--res-border);
+  padding: 12px 16px;
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.resources-card {
+  border-radius: 14px;
+  overflow: hidden;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  background: rgba(10, 18, 30, 0.55);
+}
+
+.resources-card__header {
+  padding: 10px 12px;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: rgba(230, 240, 255, 0.9);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+  background: rgba(12, 20, 34, 0.6);
+}
+
+.resources-card__media {
+  background: rgba(0, 0, 0, 0.18);
+}
+
+.resources-card__media img {
+  width: 100%;
+  height: auto;
+  display: block;
+}
+
+.resources-slideshow {
+  position: relative;
+  width: 100%;
+  aspect-ratio: 16 / 9;
+  background: rgba(0, 0, 0, 0.18);
+}
+
+.resources-slideshow img {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  object-position: center;
+  opacity: 0;
+  transition: opacity 500ms ease;
+}
+
+.resources-slideshow img.is-active {
+  opacity: 1;
+}
+
+.resources-embed {
+  border-radius: 14px;
+  overflow: hidden;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  background: rgba(10, 18, 30, 0.55);
+}
+
+.resources-embed__title {
+  padding: 10px 12px 0;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.resources-embed__subtitle {
+  padding: 6px 12px 10px;
+  color: #9fb3c9;
+  font-size: 0.9rem;
+}
+
+.resources-embed__frameWrap {
+  margin: 10px 12px 12px;
+  width: calc(100% - 24px);
+  aspect-ratio: 16 / 9;
+  min-height: 240px;
+  max-height: 70vh;
+  background: rgba(0, 0, 0, 0.18);
+  border-radius: 12px;
+  overflow: hidden;
+}
+
+.resources-embed__frame {
+  width: 100%;
+  height: 100%;
+  border: 0;
+}
+
+/* ===================================
    RIGHT PANEL (PowerBI + Ranking)
 =================================== */
 
@@ -627,6 +816,14 @@ main {
     display: flex;
     flex-direction: column;
     height: auto;
+  }
+
+  .resources-grid {
+    grid-template-columns: 1fr;
+  }
+
+  main #canopy-trees .resources-original .grid-2 {
+    grid-template-columns: 1fr;
   }
 
   /* PowerBI bigger on mobile */

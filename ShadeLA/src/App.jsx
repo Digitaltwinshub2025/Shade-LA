@@ -1,7 +1,10 @@
 import React, { useEffect, useMemo, useState } from "react";
 import "./App.css";
 import PowerBIReport from "./components/PowerBIReport";
+import GrasshopperPanel from "./components/GrasshopperPanel";
 import RhinoViewer from "./components/RhinoViewer";
+import CanopyTreesSection from "./components/CanopyTreesSection";
+import ResourcesSections from "./components/ResourcesSections";
 
 function App() {
   const [selectedArea, setSelectedArea] = useState(null);
@@ -17,14 +20,15 @@ function App() {
 
   const [tocQuery, setTocQuery] = useState("");
 
-  const cadMapperUrl = import.meta.env.VITE_CADMAPPER_URL || "http://localhost:3000";
-  const grasshopperUrl = import.meta.env.VITE_GRASSHOPPER_URL || "http://localhost:5001";
+  const cadMapperUrl = import.meta.env.VITE_CADMAPPER_URL || "http://localhost:3001";
 
   const tocItems = useMemo(
     () => [
       { href: "#overview", label: "Overview" },
       { href: "#analytics", label: "PowerBI" },
       { href: "#workspace", label: "Map + Unreal" },
+      { href: "#canopy-trees", label: "Canopy / Trees" },
+      { href: "#resources", label: "Resources" },
     ],
     []
   );
@@ -135,17 +139,18 @@ function App() {
       <main>
         <section className="hero" id="overview">
           <div>
-            <span className="badge">Cad + 3D + Compute</span>
-            <h2>ShadeLA — Map-to-Model Workflow</h2>
+            <h2>Shade-LA</h2>
             <p>
-              Select an area on the map, export geometry, and review the result in the 3D viewer. This UI
-              embeds the CadMapper tool and shows the Rhino model output in the Unreal/Rhino panel.
+              Shade-LA is a digital twin–based visualization and analysis platform focused on urban shade
+              infrastructure in Los Angeles. The project integrates geospatial data, 3D visualization,
+              parametric design tools, and analytics dashboards to support heat-mitigation planning,
+              environmental analysis, and design exploration.
             </p>
-            <div className="actions">
-              <a className="btn brand" href="#workspace">
-                Open Dashboard
-              </a>
-            </div>
+            <p>
+              Shade-LA brings together multiple tools and visual layers to explore shade coverage, canopy
+              assets, and environmental performance. It is designed for researchers, planners, designers,
+              and students interested in urban heat mitigation, digital twins, and data-driven design.
+            </p>
           </div>
         </section>
 
@@ -218,16 +223,14 @@ function App() {
                 <h2>Grasshopper</h2>
               </div>
               <div className="panel-body">
-                <iframe
-                  title="Grasshopper Canvas"
-                  src={grasshopperUrl}
-                  style={{ width: "100%", height: "100%", border: 0 }}
-                  allow="fullscreen"
-                />
+                <GrasshopperPanel />
               </div>
             </section>
           </div>
         </section>
+
+        <CanopyTreesSection />
+        <ResourcesSections />
       </main>
     </div>
   );

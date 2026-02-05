@@ -213,6 +213,14 @@ namespace compute.geometry
             GrasshopperDefinition rc = new GrasshopperDefinition(definition, icon);
             foreach( var obj in definition.Objects)
             {
+                // Grasshopper sliders are not contextual parameters, but are commonly used as simple numeric inputs.
+                // If they aren't registered as inputs, incoming schema values (ParamName x/h/z) are ignored.
+                if (obj is GH_NumberSlider numberSlider && !numberSlider.Locked)
+                {
+                    AddInput(numberSlider, numberSlider.NickName, ref rc);
+                    continue;
+                }
+
                 IGH_ContextualParameter contextualParam = obj as IGH_ContextualParameter;
                 if (contextualParam != null)
                 {
@@ -244,6 +252,18 @@ namespace compute.geometry
                         IGH_Param param = contextPrinter.Params.Input[0];
                         AddOutput(param, param.NickName, ref rc);
                     }  
+                }
+
+                var standardParam = obj as IGH_Param;
+                if (standardParam != null && !standardParam.Locked)
+                {
+                    if (standardParam.Sources != null && standardParam.Sources.Count > 0)
+                    {
+                        if (standardParam.Recipients == null || standardParam.Recipients.Count < 1)
+                        {
+                            AddOutput(standardParam, standardParam.NickName, ref rc);
+                        }
+                    }
                 }
 
                 var group = obj as GH_Group;
@@ -303,8 +323,8 @@ namespace compute.geometry
         public string CacheKey { get; set; }
         string _iconString;
         GH_Component _singularComponent;
-        Dictionary<string, InputGroup> _input = new Dictionary<string, InputGroup>();
-        Dictionary<string, IGH_Param> _output = new Dictionary<string, IGH_Param>();
+        Dictionary<string, InputGroup> _input = new Dictionary<string, InputGroup>(StringComparer.OrdinalIgnoreCase);
+        Dictionary<string, IGH_Param> _output = new Dictionary<string, IGH_Param>(StringComparer.OrdinalIgnoreCase);
         public List<string> ErrorMessages = new List<string>();
 
         public GH_Path GetPath(string p)
@@ -314,12 +334,128 @@ namespace compute.geometry
             return new GH_Path(pathIndices);
         }
 
+        private static bool TrySetNumberSliderValue(GH_NumberSlider slider, double value)
+        {
+            if (slider == null)
+                return false;
+
+            try
+            {
+                double min = (double)slider.Slider.Minimum;
+                double max = (double)slider.Slider.Maximum;
+                if (value < min) value = min;
+                if (value > max) value = max;
+
+                var t = slider.GetType();
+
+                // 1) Common API on some GH versions
+                var m = t.GetMethod("SetSliderValue", BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic);
+                if (m != null)
+                {
+                    var p = m.GetParameters();
+                    if (p.Length == 1)
+                    {
+                        if (p[0].ParameterType == typeof(decimal))
+                        {
+                            m.Invoke(slider, new object[] { (decimal)value });
+                            return true;
+                        }
+                        if (p[0].ParameterType == typeof(double))
+                        {
+                            m.Invoke(slider, new object[] { value });
+                            return true;
+                        }
+                    }
+                }
+
+                // 2) Some versions expose "Value" or "CurrentValue" on the slider itself
+                var prop = t.GetProperty("Value", BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic);
+                if (prop != null && prop.CanWrite)
+                {
+                    if (prop.PropertyType == typeof(decimal))
+                    {
+                        prop.SetValue(slider, (decimal)value);
+                        return true;
+                    }
+                    if (prop.PropertyType == typeof(double))
+                    {
+                        prop.SetValue(slider, value);
+                        return true;
+                    }
+                }
+
+                prop = t.GetProperty("CurrentValue", BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic);
+                if (prop != null && prop.CanWrite)
+                {
+                    if (prop.PropertyType == typeof(decimal))
+                    {
+                        prop.SetValue(slider, (decimal)value);
+                        return true;
+                    }
+                    if (prop.PropertyType == typeof(double))
+                    {
+                        prop.SetValue(slider, value);
+                        return true;
+                    }
+                }
+
+                // 3) As a fallback, try to set value on the underlying Slider object
+                var sliderObj = t.GetProperty("Slider", BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic)?.GetValue(slider);
+                if (sliderObj != null)
+                {
+                    var st = sliderObj.GetType();
+                    var sv = st.GetProperty("Value", BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic);
+                    if (sv != null && sv.CanWrite)
+                    {
+                        if (sv.PropertyType == typeof(decimal))
+                        {
+                            sv.SetValue(sliderObj, (decimal)value);
+                            return true;
+                        }
+                        if (sv.PropertyType == typeof(double))
+                        {
+                            sv.SetValue(sliderObj, value);
+                            return true;
+                        }
+                        if (sv.PropertyType == typeof(int))
+                        {
+                            sv.SetValue(sliderObj, (int)Math.Round(value));
+                            return true;
+                        }
+                    }
+                }
+            }
+            catch
+            {
+                // ignore
+            }
+
+            return false;
+        }
+
         public void SetInputs(List<Resthopper.IO.DataTree<ResthopperObject>> values)
         {
+            bool loggedAvailableInputs = false;
             foreach (var tree in values)
             {
                 if( !_input.TryGetValue(tree.ParamName, out var inputGroup))
                 {
+                    if (!loggedAvailableInputs)
+                    {
+                        loggedAvailableInputs = true;
+                        try
+                        {
+                            Log.Warning($"[GH] Input not found for ParamName='{tree.ParamName}'. Available inputs: {string.Join(", ", _input.Keys)}");
+                        }
+                        catch
+                        {
+                            Log.Warning($"[GH] Input not found for ParamName='{tree.ParamName}'. (Failed to format available input keys)");
+                        }
+                    }
+                    else
+                    {
+                        Log.Warning($"[GH] Input not found for ParamName='{tree.ParamName}'");
+                    }
                     continue;
                 }
 
@@ -742,6 +878,8 @@ namespace compute.geometry
 
                 if (inputGroup.Param is GH_NumberSlider)
                 {
+                    bool setSliderValue = false;
+                    double sliderValue = 0.0;
                     foreach (KeyValuePair<string, List<ResthopperObject>> entree in tree)
                     {
                         GH_Path path = new GH_Path(GhPath.FromString(entree.Key));
@@ -751,7 +889,20 @@ namespace compute.geometry
                             double rhNumber = JsonConvert.DeserializeObject<double>(restobj.Data);
                             GH_Number data = new GH_Number(rhNumber);
                             inputGroup.Param.AddVolatileData(path, i, data);
+
+                            if (!setSliderValue)
+                            {
+                                setSliderValue = true;
+                                sliderValue = rhNumber;
+                            }
                         }
+                    }
+
+                    if (setSliderValue && inputGroup.Param is GH_NumberSlider slider)
+                    {
+                        var ok = TrySetNumberSliderValue(slider, sliderValue);
+                        if (!ok)
+                            Log.Warning($"[GH] Failed to set GH_NumberSlider '{slider.NickName}' to {sliderValue}");
                     }
                     continue;
                 }
@@ -844,6 +995,54 @@ namespace compute.geometry
                     if (goo == null)
                         continue;
 
+                    void AddGeometryOrMesh(object geometry)
+                    {
+                        if (geometry == null)
+                            return;
+
+                        if (geometry is Rhino.Geometry.Mesh m)
+                        {
+                            resthopperObjectList.Add(GetResthopperObject<Mesh>(m, rhinoVersion));
+                            return;
+                        }
+
+                        Brep brep = null;
+                        if (geometry is Brep b)
+                            brep = b;
+                        else if (geometry is Extrusion ex)
+                        {
+                            try { brep = ex.ToBrep(); } catch { brep = null; }
+                        }
+
+                        if (brep != null)
+                        {
+                            var meshes = Rhino.Geometry.Mesh.CreateFromBrep(brep, Rhino.Geometry.MeshingParameters.Default);
+                            if (meshes == null || meshes.Length < 1)
+                                meshes = Rhino.Geometry.Mesh.CreateFromBrep(brep, Rhino.Geometry.MeshingParameters.Coarse);
+
+                            if (meshes != null && meshes.Length > 0)
+                            {
+                                foreach (var mm in meshes)
+                                {
+                                    if (mm == null) continue;
+                                    resthopperObjectList.Add(GetResthopperObject<Mesh>(mm, rhinoVersion));
+                                }
+                                return;
+                            }
+
+                            Log.Warning($"Mesh.CreateFromBrep returned 0 meshes. Brep IsValid={brep.IsValid} Faces={brep.Faces?.Count}");
+
+                            resthopperObjectList.Add(GetResthopperObject<Brep>(brep, rhinoVersion));
+                            return;
+                        }
+
+                        if (geometry is GeometryBase gb)
+                        {
+                            resthopperObjectList.Add(GetResthopperObject<GeometryBase>(gb, rhinoVersion));
+                            return;
+                        }
+                    }
+
                     switch (goo)
                     {
                         case GH_Boolean ghValue:
@@ -933,13 +1132,51 @@ namespace compute.geometry
                         case GH_Surface ghValue:
                             {
                                 Brep rhValue = ghValue.Value;
-                                resthopperObjectList.Add(GetResthopperObject<Brep>(rhValue, rhinoVersion));
+                                if (rhValue != null)
+                                {
+                                    var meshes = Rhino.Geometry.Mesh.CreateFromBrep(rhValue, Rhino.Geometry.MeshingParameters.Default);
+                                    if (meshes == null || meshes.Length < 1)
+                                        meshes = Rhino.Geometry.Mesh.CreateFromBrep(rhValue, Rhino.Geometry.MeshingParameters.Coarse);
+
+                                    if (meshes != null && meshes.Length > 0)
+                                    {
+                                        foreach (var m in meshes)
+                                        {
+                                            if (m == null) continue;
+                                            resthopperObjectList.Add(GetResthopperObject<Mesh>(m, rhinoVersion));
+                                        }
+                                    }
+                                    else
+                                    {
+                                        Log.Warning($"Mesh.CreateFromBrep returned 0 meshes (GH_Surface). Brep IsValid={rhValue.IsValid} Faces={rhValue.Faces?.Count}");
+                                        resthopperObjectList.Add(GetResthopperObject<Brep>(rhValue, rhinoVersion));
+                                    }
+                                }
                             }
                             break;
                         case GH_Brep ghValue:
                             {
                                 Brep rhValue = ghValue.Value;
-                                resthopperObjectList.Add(GetResthopperObject<Brep>(rhValue, rhinoVersion));
+                                if (rhValue != null)
+                                {
+                                    var meshes = Rhino.Geometry.Mesh.CreateFromBrep(rhValue, Rhino.Geometry.MeshingParameters.Default);
+                                    if (meshes == null || meshes.Length < 1)
+                                        meshes = Rhino.Geometry.Mesh.CreateFromBrep(rhValue, Rhino.Geometry.MeshingParameters.Coarse);
+
+                                    if (meshes != null && meshes.Length > 0)
+                                    {
+                                        foreach (var m in meshes)
+                                        {
+                                            if (m == null) continue;
+                                            resthopperObjectList.Add(GetResthopperObject<Mesh>(m, rhinoVersion));
+                                        }
+                                    }
+                                    else
+                                    {
+                                        Log.Warning($"Mesh.CreateFromBrep returned 0 meshes (GH_Brep). Brep IsValid={rhValue.IsValid} Faces={rhValue.Faces?.Count}");
+                                        resthopperObjectList.Add(GetResthopperObject<Brep>(rhValue, rhinoVersion));
+                                    }
+                                }
                             }
                             break;
                         case GH_Mesh ghValue:
@@ -951,7 +1188,43 @@ namespace compute.geometry
                         case GH_Extrusion ghValue:
                             {
                                 Extrusion rhValue = ghValue.Value;
-                                resthopperObjectList.Add(GetResthopperObject<Extrusion>(rhValue, rhinoVersion));
+                                if (rhValue != null)
+                                {
+                                    Brep brep = null;
+                                    try
+                                    {
+                                        brep = rhValue.ToBrep();
+                                    }
+                                    catch
+                                    {
+                                        brep = null;
+                                    }
+
+                                    if (brep != null)
+                                    {
+                                        var meshes = Rhino.Geometry.Mesh.CreateFromBrep(brep, Rhino.Geometry.MeshingParameters.Default);
+                                        if (meshes == null || meshes.Length < 1)
+                                            meshes = Rhino.Geometry.Mesh.CreateFromBrep(brep, Rhino.Geometry.MeshingParameters.Coarse);
+
+                                        if (meshes != null && meshes.Length > 0)
+                                        {
+                                            foreach (var m in meshes)
+                                            {
+                                                if (m == null) continue;
+                                                resthopperObjectList.Add(GetResthopperObject<Mesh>(m, rhinoVersion));
+                                            }
+                                        }
+                                        else
+                                        {
+                                            Log.Warning($"Mesh.CreateFromBrep returned 0 meshes (GH_Extrusion). Brep IsValid={brep.IsValid} Faces={brep.Faces?.Count}");
+                                            resthopperObjectList.Add(GetResthopperObject<Extrusion>(rhValue, rhinoVersion));
+                                        }
+                                    }
+                                    else
+                                    {
+                                        resthopperObjectList.Add(GetResthopperObject<Extrusion>(rhValue, rhinoVersion));
+                                    }
+                                }
                             }
                             break;
                         case GH_PointCloud ghValue:
@@ -1018,6 +1291,25 @@ namespace compute.geometry
                             {
                                 Centermark rhValue = ghValue.Value;
                                 resthopperObjectList.Add(GetResthopperObject<Centermark>(rhValue, rhinoVersion));
+                            }
+                            break;
+                        default:
+                            {
+                                try
+                                {
+                                    if (goo is IGH_Goo ig)
+                                    {
+                                        var sv = ig.ScriptVariable();
+                                        if (sv != null)
+                                        {
+                                            AddGeometryOrMesh(sv);
+                                            break;
+                                        }
+                                    }
+                                }
+                                catch
+                                {
+                                }
                             }
                             break;
                     }
