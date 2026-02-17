@@ -1,0 +1,6 @@
+{
+  "/api/compute/params/route": "app/api/compute/params/route.js",
+  "/api/places/route": "app/api/places/route.js",
+  "/api/osm/route": "app/api/osm/route.js",
+  "/page": "app/page.js"
+}

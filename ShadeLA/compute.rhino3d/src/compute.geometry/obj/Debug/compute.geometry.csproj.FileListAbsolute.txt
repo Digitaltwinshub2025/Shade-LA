@@ -1,0 +1,17 @@
+D:\meryShadeLa\ShadeLA\compute.rhino3d\src\compute.geometry\obj\Debug\compute.geometry.csproj.AssemblyReference.cache
+D:\meryShadeLa\ShadeLA\compute.rhino3d\src\compute.geometry\obj\Debug\compute.geometry.GeneratedMSBuildEditorConfig.editorconfig
+D:\meryShadeLa\ShadeLA\compute.rhino3d\src\compute.geometry\obj\Debug\compute.geometry.AssemblyInfoInputs.cache
+D:\meryShadeLa\ShadeLA\compute.rhino3d\src\compute.geometry\obj\Debug\compute.geometry.AssemblyInfo.cs
+D:\meryShadeLa\ShadeLA\compute.rhino3d\src\compute.geometry\obj\Debug\compute.geometry.csproj.CoreCompileInputs.cache
+D:\meryShadeLa\ShadeLA\compute.rhino3d\src\compute.geometry\obj\Debug\compute.geometry.sourcelink.json
+D:\meryShadeLa\ShadeLA\compute.rhino3d\src\bin\Debug\compute.geometry\compute.geometry.exe
+D:\meryShadeLa\ShadeLA\compute.rhino3d\src\bin\Debug\compute.geometry\compute.geometry.deps.json
+D:\meryShadeLa\ShadeLA\compute.rhino3d\src\bin\Debug\compute.geometry\compute.geometry.runtimeconfig.json
+D:\meryShadeLa\ShadeLA\compute.rhino3d\src\bin\Debug\compute.geometry\compute.geometry.dll
+D:\meryShadeLa\ShadeLA\compute.rhino3d\src\bin\Debug\compute.geometry\compute.geometry.pdb
+D:\meryShadeLa\ShadeLA\compute.rhino3d\src\compute.geometry\obj\Debug\compute..7F7BA704.Up2Date
+D:\meryShadeLa\ShadeLA\compute.rhino3d\src\compute.geometry\obj\Debug\compute.geometry.dll
+D:\meryShadeLa\ShadeLA\compute.rhino3d\src\compute.geometry\obj\Debug\refint\compute.geometry.dll
+D:\meryShadeLa\ShadeLA\compute.rhino3d\src\compute.geometry\obj\Debug\compute.geometry.pdb
+D:\meryShadeLa\ShadeLA\compute.rhino3d\src\compute.geometry\obj\Debug\compute.geometry.genruntimeconfig.cache
+D:\meryShadeLa\ShadeLA\compute.rhino3d\src\compute.geometry\obj\Debug\ref\compute.geometry.dll
