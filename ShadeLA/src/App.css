@@ -281,7 +281,7 @@ main {
 .workspace-grid {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
-  grid-template-rows: 1000px minmax(320px, 1fr);
+  grid-template-rows: 1000px minmax(320px, 1fr) minmax(320px, 1fr);
   gap: 16px;
   height: auto;
 }
@@ -417,6 +417,11 @@ main {
 .panel-grasshopper {
   grid-column: 2;
   grid-row: 2;
+}
+
+.panel-gh-render {
+  grid-column: 1 / span 2;
+  grid-row: 3;
 }
 
 /* ===================================

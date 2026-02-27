@@ -2,6 +2,7 @@ import React, { useEffect, useMemo, useState } from "react";
 import "./App.css";
 import PowerBIReport from "./components/PowerBIReport";
 import GrasshopperPanel from "./components/GrasshopperPanel";
+import GrasshopperRenderPanel from "./components/GrasshopperRenderPanel";
 import RhinoViewer from "./components/RhinoViewer";
 import CanopyTreesSection from "./components/CanopyTreesSection";
 import ResourcesSections from "./components/ResourcesSections";
@@ -224,6 +225,15 @@ function App() {
               </div>
               <div className="panel-body">
                 <GrasshopperPanel />
+              </div>
+            </section>
+
+            <section className="panel panel-gh-render">
+              <div className="panel-header">
+                <h2>Grasshopper render</h2>
+              </div>
+              <div className="panel-body">
+                <GrasshopperRenderPanel />
               </div>
             </section>
           </div>

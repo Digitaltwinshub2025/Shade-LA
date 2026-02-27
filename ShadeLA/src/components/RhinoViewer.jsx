@@ -39,6 +39,20 @@ function RhinoViewer() {
   const currentLineRef = useRef(null);
   const previewLineRef = useRef(null);
 
+  const SCENE_UNITS_TO_METERS = 1;
+
+  const computePolylineLengthMeters = (pts) => {
+    if (!Array.isArray(pts) || pts.length < 2) return 0;
+    let total = 0;
+    for (let i = 1; i < pts.length; i++) {
+      const a = pts[i - 1];
+      const b = pts[i];
+      if (!a || !b) continue;
+      total += a.distanceTo(b);
+    }
+    return total * SCENE_UNITS_TO_METERS;
+  };
+
   const groupsRef = useRef({ buildings: null, roads: null, parks: null, water: null });
   const ghGroupRef = useRef(null);
   const rhinoRef = useRef(null);
@@ -469,8 +483,9 @@ function RhinoViewer() {
           }
           const current = drawStateRef.current.current;
           current.push(pt);
+          const lenM = computePolylineLengthMeters(current);
           setModelStatus(
-            `Draw: ${current.length} pts (last: ${pt.x.toFixed(2)}, ${pt.y.toFixed(2)}, ${pt.z.toFixed(2)})`
+            `Draw: ${current.length} pts, ${lenM.toFixed(2)} m (last: ${pt.x.toFixed(2)}, ${pt.y.toFixed(2)}, ${pt.z.toFixed(2)})`
           );
           updateCurrentLine();
           updatePreviewLine(pt);
@@ -571,9 +586,241 @@ function RhinoViewer() {
     };
   }, []);
 
+  useEffect(() => {
+    const onReq = (ev) => {
+      const detail = ev?.detail || {};
+      const requestId = detail.requestId;
+      const overlayOnly = detail.overlayOnly !== false;
+      const width = Number.isFinite(detail.width) ? Math.max(64, Math.floor(detail.width)) : 1280;
+      const height = Number.isFinite(detail.height) ? Math.max(64, Math.floor(detail.height)) : 720;
+
+      const respond = (payload) => {
+        try {
+          window.dispatchEvent(new CustomEvent("grasshopper:render-snapshot", { detail: { requestId, ...payload } }));
+        } catch {
+          // ignore
+        }
+      };
+
+      if (!requestId) {
+        respond({ ok: false, error: "Missing requestId" });
+        return;
+      }
+
+      const renderer = rendererRef.current;
+      const scene = sceneRef.current;
+      const camera = cameraRef.current;
+
+      if (!renderer || !scene || !camera) {
+        respond({ ok: false, error: "Viewer not ready" });
+        return;
+      }
+
+      if (overlayOnly && (!ghGroupRef.current || ghGroupRef.current.children.length < 1)) {
+        respond({ ok: false, error: "No Grasshopper overlay to render" });
+        return;
+      }
+
+      const prev = {
+        bg: scene.background,
+        groupsVisible: {
+          buildings: groupsRef.current?.buildings?.visible,
+          roads: groupsRef.current?.roads?.visible,
+          parks: groupsRef.current?.parks?.visible,
+          water: groupsRef.current?.water?.visible,
+        },
+        drawVisible: drawGroupRef.current?.visible,
+      };
+
+      const prevSize = new THREE.Vector2();
+      renderer.getSize(prevSize);
+      const prevPixelRatio = renderer.getPixelRatio?.() || 1;
+
+      const rt = new THREE.WebGLRenderTarget(width, height, {
+        format: THREE.RGBAFormat,
+        type: THREE.UnsignedByteType,
+        depthBuffer: true,
+        stencilBuffer: false,
+      });
+
+      try {
+        scene.background = new THREE.Color("#f4f4f4");
+
+        if (overlayOnly) {
+          const g = groupsRef.current;
+          if (g?.buildings) g.buildings.visible = false;
+          if (g?.roads) g.roads.visible = false;
+          if (g?.parks) g.parks.visible = false;
+          if (g?.water) g.water.visible = false;
+          if (drawGroupRef.current) drawGroupRef.current.visible = false;
+        }
+
+        renderer.setPixelRatio(1);
+        renderer.setSize(width, height, false);
+        renderer.setRenderTarget(rt);
+        renderer.render(scene, camera);
+
+        const pixels = new Uint8Array(width * height * 4);
+        renderer.readRenderTargetPixels(rt, 0, 0, width, height, pixels);
+
+        const canvas = document.createElement("canvas");
+        canvas.width = width;
+        canvas.height = height;
+        const ctx = canvas.getContext("2d");
+        if (!ctx) {
+          respond({ ok: false, error: "2D context unavailable" });
+          return;
+        }
+
+        const imgData = ctx.createImageData(width, height);
+
+        for (let y = 0; y < height; y++) {
+          const srcRow = height - 1 - y;
+          const srcOffset = srcRow * width * 4;
+          const dstOffset = y * width * 4;
+          imgData.data.set(pixels.subarray(srcOffset, srcOffset + width * 4), dstOffset);
+        }
+
+        ctx.putImageData(imgData, 0, 0);
+        const dataUrl = canvas.toDataURL("image/png");
+        respond({ ok: true, dataUrl });
+      } catch (e) {
+        respond({ ok: false, error: String(e?.message || e) });
+      } finally {
+        try {
+          renderer.setRenderTarget(null);
+        } catch {
+          // ignore
+        }
+        try {
+          rt.dispose?.();
+        } catch {
+          // ignore
+        }
+
+        try {
+          renderer.setPixelRatio(prevPixelRatio);
+          renderer.setSize(prevSize.x, prevSize.y, false);
+        } catch {
+          // ignore
+        }
+
+        try {
+          scene.background = prev.bg;
+          const g = groupsRef.current;
+          if (g?.buildings && typeof prev.groupsVisible.buildings === "boolean") g.buildings.visible = prev.groupsVisible.buildings;
+          if (g?.roads && typeof prev.groupsVisible.roads === "boolean") g.roads.visible = prev.groupsVisible.roads;
+          if (g?.parks && typeof prev.groupsVisible.parks === "boolean") g.parks.visible = prev.groupsVisible.parks;
+          if (g?.water && typeof prev.groupsVisible.water === "boolean") g.water.visible = prev.groupsVisible.water;
+          if (drawGroupRef.current && typeof prev.drawVisible === "boolean") drawGroupRef.current.visible = prev.drawVisible;
+        } catch {
+          // ignore
+        }
+      }
+    };
+
+    window.addEventListener("grasshopper:request-render-snapshot", onReq);
+    return () => window.removeEventListener("grasshopper:request-render-snapshot", onReq);
+  }, []);
+
+  useEffect(() => {
+    const onReqObj = (ev) => {
+      const detail = ev?.detail || {};
+      const requestId = detail.requestId;
+
+      const respond = (payload) => {
+        try {
+          window.dispatchEvent(new CustomEvent("grasshopper:obj", { detail: { requestId, ...payload } }));
+        } catch {
+          // ignore
+        }
+      };
+
+      if (!requestId) {
+        respond({ ok: false, error: "Missing requestId" });
+        return;
+      }
+
+      if (!ghGroupRef.current || ghGroupRef.current.children.length < 1) {
+        respond({ ok: false, error: "No Grasshopper overlay to export" });
+        return;
+      }
+
+      const overlay = ghGroupRef.current;
+      overlay.updateMatrixWorld(true);
+
+      try {
+        let out = "";
+        let vOffset = 1;
+
+        const toMeshList = () => {
+          const meshes = [];
+          overlay.traverse((obj) => {
+            if (!obj) return;
+            if (obj.isMesh && obj.geometry) meshes.push(obj);
+          });
+          return meshes;
+        };
+
+        const meshes = toMeshList();
+        if (!meshes.length) {
+          respond({ ok: false, error: "Overlay contains no meshes" });
+          return;
+        }
+
+        for (const mesh of meshes) {
+          const geom = mesh.geometry;
+          if (!geom) continue;
+
+          const posAttr = geom.attributes?.position;
+          if (!posAttr || !posAttr.array) continue;
+
+          const world = mesh.matrixWorld;
+          const v = new THREE.Vector3();
+
+          out += `o ${mesh.name || "mesh"}\n`;
+
+          for (let i = 0; i < posAttr.count; i++) {
+            v.fromBufferAttribute(posAttr, i);
+            v.applyMatrix4(world);
+            out += `v ${v.x} ${v.y} ${v.z}\n`;
+          }
+
+          const idx = geom.index;
+          if (idx && idx.array && idx.count >= 3) {
+            for (let i = 0; i < idx.count; i += 3) {
+              const a = idx.getX(i + 0) + vOffset;
+              const b = idx.getX(i + 1) + vOffset;
+              const c = idx.getX(i + 2) + vOffset;
+              out += `f ${a} ${b} ${c}\n`;
+            }
+          } else {
+            for (let i = 0; i < posAttr.count; i += 3) {
+              const a = vOffset + i + 0;
+              const b = vOffset + i + 1;
+              const c = vOffset + i + 2;
+              out += `f ${a} ${b} ${c}\n`;
+            }
+          }
+
+          vOffset += posAttr.count;
+          out += "\n";
+        }
+
+        respond({ ok: true, objText: out });
+      } catch (e) {
+        respond({ ok: false, error: String(e?.message || e) });
+      }
+    };
+
+    window.addEventListener("grasshopper:request-obj", onReqObj);
+    return () => window.removeEventListener("grasshopper:request-obj", onReqObj);
+  }, []);
+
   const finishCurrentPolyline = () => {
     const current = drawStateRef.current.current;
     if (current.length < 2) return;
+    const lenM = computePolylineLengthMeters(current);
     drawStateRef.current.polylines.push(current.map((p) => p.clone()));
     drawStateRef.current.current = [];
 
@@ -592,6 +839,7 @@ function RhinoViewer() {
       previewLineRef.current.geometry?.dispose?.();
       previewLineRef.current = null;
     }
+    setModelStatus(`Draw: polyline saved (${lenM.toFixed(2)} m)`);
     forceUiUpdate((x) => x + 1);
   };
 
