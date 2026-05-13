@@ -26,8 +26,7 @@ app.add_middleware(
     CORSMiddleware,
     allow_origins=[
         "https://balanin.github.io",
-        "https://balanin.github.io/Shade-LA",
-        "https://balanin.github.io/Shade-LA/",
+        "https://digitaltwinshub2025.github.io",
         "http://127.0.0.1:5173",
         "http://localhost:5173",
         "http://127.0.0.1:5174",
@@ -37,6 +36,7 @@ app.add_middleware(
         "http://127.0.0.1:5176",
         "http://localhost:5176",
     ],
+    allow_origin_regex=r"^https://.*\.github\.io$",
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
