@@ -67,6 +67,8 @@ function createDefaultAnalysisSettings() {
 export default function TerrainOsmPanel({ viewerRef }) {
   const mapRef = useRef(null);
   const mapPickerRef = useRef(null);
+  const regenTimerRef = useRef(null);
+  const regenDidInitRef = useRef(false);
 
   const [status, setStatus] = useState("Idle");
   const [bounds, setBounds] = useState(DEFAULT_BOUNDS);
@@ -327,6 +329,37 @@ export default function TerrainOsmPanel({ viewerRef }) {
     } catch {
       // ignore
     }
+  }, [bounds, viewerRef]);
+
+  useEffect(() => {
+    const viewer = viewerRef?.current;
+    if (!viewer?.generateTerrainAndOsm) return;
+
+    if (!regenDidInitRef.current) {
+      regenDidInitRef.current = true;
+      return;
+    }
+
+    if (regenTimerRef.current) {
+      window.clearTimeout(regenTimerRef.current);
+      regenTimerRef.current = null;
+    }
+
+    setStatus("Loading city model...");
+    regenTimerRef.current = window.setTimeout(() => {
+      try {
+        viewerRef?.current?.generateTerrainAndOsm?.();
+      } catch {
+        // ignore
+      }
+    }, 350);
+
+    return () => {
+      if (regenTimerRef.current) {
+        window.clearTimeout(regenTimerRef.current);
+        regenTimerRef.current = null;
+      }
+    };
   }, [bounds, viewerRef]);
 
   useEffect(() => {
