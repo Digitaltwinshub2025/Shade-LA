@@ -100,7 +100,12 @@ function App() {
 
       <nav id="sidebar">
         <div className="brand">
-          <div className="logo" aria-hidden="true" />
+          <img
+            className="logo"
+            src={`${import.meta.env.BASE_URL || "/"}images/la-logo.png`}
+            alt="ShadeLA logo"
+            draggable={false}
+          />
           <h1>ShadeLA</h1>
           <button
             type="button"
