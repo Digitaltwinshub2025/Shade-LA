@@ -348,6 +348,7 @@ select::-ms-expand {
   border-radius: 16px;
   padding: 12px 12px 10px;
   border: 1px solid rgba(96, 165, 250, 0.15);
+  overflow: hidden;
 }
 
 .panel h3 {
@@ -568,11 +569,13 @@ select::-ms-expand {
   justify-content: flex-end;
   gap: 8px;
   min-height: 34px;
+  flex-wrap: wrap;
   width: 100%;
 }
 
 .terrain-grid label.terrain-field .terrain-field-label {
-  flex: 0 0 180px;
+  flex: 1 1 140px;
+  min-width: 120px;
   margin-right: 0;
   opacity: 0.92;
 }
@@ -581,8 +584,9 @@ select::-ms-expand {
 .terrain-grid label.terrain-field input[type="text"],
 .terrain-grid label.terrain-field input[type="date"],
 .terrain-grid label.terrain-field select {
-  flex: 0 0 240px;
-  max-width: 240px;
+  flex: 1 1 220px;
+  max-width: 100%;
+  min-width: 0;
 }
 
 .terrain-grid label.terrain-field input[type="checkbox"] {
@@ -784,6 +788,13 @@ select::-ms-expand {
   border-radius: 12px;
   border: 1px solid rgba(255, 255, 255, 0.12);
   overflow: hidden;
+}
+
+.terrain-map .leaflet-draw,
+.terrain-map .leaflet-draw-toolbar,
+.terrain-map .leaflet-draw-toolbar-top,
+.terrain-map .leaflet-draw-toolbar-bottom {
+  display: none !important;
 }
 
 /* ===================================

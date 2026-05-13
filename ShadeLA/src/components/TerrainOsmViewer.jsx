@@ -97,6 +97,9 @@ const TerrainOsmViewer = forwardRef(function TerrainOsmViewer({ options, onStatu
   const [shadeScaleDraft, setShadeScaleDraft] = useState("");
   const shadeMenuRef = useRef(null);
 
+  const toolbarRef = useRef(null);
+  const [toolbarBottomPx, setToolbarBottomPx] = useState(72);
+
   const [analysisLegend, setAnalysisLegend] = useState(null);
 
   const presetThumbErrorRef = useRef(new Set());
@@ -187,6 +190,37 @@ const TerrainOsmViewer = forwardRef(function TerrainOsmViewer({ options, onStatu
   }, [selectedShadeUi?.id]);
 
   useEffect(() => {
+    const update = () => {
+      const el = toolbarRef.current;
+      const h = el?.offsetHeight;
+      if (!h) return;
+      setToolbarBottomPx(10 + h + 10);
+    };
+
+    update();
+
+    let ro;
+    try {
+      if (typeof ResizeObserver !== "undefined" && toolbarRef.current) {
+        ro = new ResizeObserver(() => update());
+        ro.observe(toolbarRef.current);
+      }
+    } catch {
+      // ignore
+    }
+
+    window.addEventListener("resize", update);
+    return () => {
+      window.removeEventListener("resize", update);
+      try {
+        ro?.disconnect?.();
+      } catch {
+        // ignore
+      }
+    };
+  }, []);
+
+  useEffect(() => {
     let alive = true;
     const load = async () => {
       try {
@@ -212,7 +246,7 @@ const TerrainOsmViewer = forwardRef(function TerrainOsmViewer({ options, onStatu
             label: displayLabel,
             objUrl: `${baseUrl}3dmodels/${encodeURIComponent(filename)}`,
             defaultCoolingFactor: 0.1,
-            defaultScale: null,
+            defaultScale: 5,
             defaultRotationY: 0,
           });
         }
@@ -1828,6 +1862,8 @@ const TerrainOsmViewer = forwardRef(function TerrainOsmViewer({ options, onStatu
     try {
       setIsGenerating(true);
       reportStatus("Requesting DEM...");
+
+      clearShadeInstances();
       disposeTerrainAndLayers();
 
       const result = await fetchDemWithFallback(currentBounds, apiKey, reportStatus);
@@ -2666,6 +2702,7 @@ const TerrainOsmViewer = forwardRef(function TerrainOsmViewer({ options, onStatu
       )}
       <style>{"@keyframes shadela-spin{0%{transform:rotate(0deg)}100%{transform:rotate(360deg)}}"}</style>
       <div
+        ref={toolbarRef}
         style={{
           position: "absolute",
           top: 10,
@@ -2870,7 +2907,7 @@ const TerrainOsmViewer = forwardRef(function TerrainOsmViewer({ options, onStatu
       <div
         style={{
           position: "absolute",
-          top: 72,
+          top: toolbarBottomPx,
           left: 10,
           width: 320,
           maxWidth: "calc(100% - 20px)",
