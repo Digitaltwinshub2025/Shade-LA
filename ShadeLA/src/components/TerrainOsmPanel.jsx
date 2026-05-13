@@ -93,6 +93,18 @@ export default function TerrainOsmPanel({ viewerRef }) {
 
   const [analysisStatus, setAnalysisStatus] = useState("");
   const [chartsExpanded, setChartsExpanded] = useState(false);
+  const [chartModalOpen, setChartModalOpen] = useState(false);
+  const [chartMenu, setChartMenu] = useState(null);
+
+  const normalizeNumericInput = (raw, { min, max, fallback }) => {
+    if (raw === "" || raw === null || raw === undefined) return "";
+    return clampNumber(raw, min, max);
+  };
+
+  const normalizeOnBlur = (raw, { min, max, fallback }) => {
+    if (raw === "" || raw === null || raw === undefined) return fallback;
+    return clampNumber(raw, min, max);
+  };
 
   const options = useMemo(
     () => ({
@@ -162,19 +174,76 @@ export default function TerrainOsmPanel({ viewerRef }) {
     });
 
     const maxCount = Math.max(1, ...counts);
-    const padding = 18;
-    const chartW = Math.max(1, width - padding * 2);
-    const chartH = Math.max(1, height - padding * 2);
-    const barW = chartW / bins;
-
+    const margin = { top: 34, right: 16, bottom: 40, left: 54 };
+    const plotX = margin.left;
+    const plotY = margin.top;
+    const plotW = Math.max(1, width - margin.left - margin.right);
+    const plotH = Math.max(1, height - margin.top - margin.bottom);
+    const barW = plotW / bins;
     const bars = counts
       .map((count, idx) => {
-        const h = (count / maxCount) * chartH;
-        const x = padding + idx * barW;
-        const y = padding + (chartH - h);
+        const h = (count / maxCount) * plotH;
+        const x = plotX + idx * barW;
+        const y = plotY + (plotH - h);
         return `<rect x=\"${x.toFixed(2)}\" y=\"${y.toFixed(2)}\" width=\"${Math.max(0, barW - 1).toFixed(
           2
         )}\" height=\"${h.toFixed(2)}\" rx=\"2\" fill=\"#93c5fd\" fill-opacity=\"0.9\" />`;
+      })
+      .join("");
+
+    const axisColor = "#334155";
+    const labelColor = "#cbd5e1";
+    const tickColor = "#475569";
+    const fontFamily = "ui-sans-serif, system-ui";
+
+    const formatNumber = (v) => {
+      if (!Number.isFinite(v)) return "0";
+      if (Math.abs(v) >= 100) return String(Math.round(v));
+      if (Math.abs(v) >= 10) return v.toFixed(1);
+      return v.toFixed(2);
+    };
+
+    const xTicks = [min, (min + max) / 2, max];
+    const yTicks = [0, maxCount];
+
+    const xAxis = `<line x1=\"${plotX}\" y1=\"${(plotY + plotH).toFixed(2)}\" x2=\"${(plotX + plotW).toFixed(
+      2
+    )}\" y2=\"${(plotY + plotH).toFixed(2)}\" stroke=\"${axisColor}\" stroke-width=\"1\" />`;
+    const yAxis = `<line x1=\"${plotX}\" y1=\"${plotY}\" x2=\"${plotX}\" y2=\"${(plotY + plotH).toFixed(
+      2
+    )}\" stroke=\"${axisColor}\" stroke-width=\"1\" />`;
+
+    const xTickMarks = xTicks
+      .map((t) => {
+        const tt = (t - min) / range;
+        const x = plotX + Math.max(0, Math.min(1, tt)) * plotW;
+        const y = plotY + plotH;
+        return `
+  <line x1=\"${x.toFixed(2)}\" y1=\"${y.toFixed(2)}\" x2=\"${x.toFixed(2)}\" y2=\"${(y + 6).toFixed(
+          2
+        )}\" stroke=\"${tickColor}\" stroke-width=\"1\" />
+  <text x=\"${x.toFixed(2)}\" y=\"${(y + 20).toFixed(
+          2
+        )}\" fill=\"${labelColor}\" font-family=\"${fontFamily}\" font-size=\"12\" text-anchor=\"middle\">${formatNumber(
+          t
+        )}</text>`;
+      })
+      .join("");
+
+    const yTickMarks = yTicks
+      .map((t) => {
+        const tt = t / maxCount;
+        const y = plotY + plotH - Math.max(0, Math.min(1, tt)) * plotH;
+        const x = plotX;
+        return `
+  <line x1=\"${x.toFixed(2)}\" y1=\"${y.toFixed(2)}\" x2=\"${(x - 6).toFixed(
+          2
+        )}\" y2=\"${y.toFixed(2)}\" stroke=\"${tickColor}\" stroke-width=\"1\" />
+  <text x=\"${(x - 10).toFixed(2)}\" y=\"${(y + 4).toFixed(
+          2
+        )}\" fill=\"${labelColor}\" font-family=\"${fontFamily}\" font-size=\"12\" text-anchor=\"end\">${Math.round(
+          t
+        )}</text>`;
       })
       .join("");
 
@@ -182,10 +251,41 @@ export default function TerrainOsmPanel({ viewerRef }) {
     return `<?xml version=\"1.0\" encoding=\"UTF-8\"?>
 <svg xmlns=\"http://www.w3.org/2000/svg\" width=\"${width}\" height=\"${height}\" viewBox=\"0 0 ${width} ${height}\">
   <rect x=\"0\" y=\"0\" width=\"${width}\" height=\"${height}\" rx=\"12\" fill=\"#0b1220\" />
-  <text x=\"${padding}\" y=\"${padding + 4}\" fill=\"#e5e7eb\" font-family=\"ui-sans-serif, system-ui\" font-size=\"14\" font-weight=\"600\">${title}</text>
-  <g transform=\"translate(0 14)\">${bars}</g>
+  <text x=\"${margin.left}\" y=\"22\" fill=\"#e5e7eb\" font-family=\"${fontFamily}\" font-size=\"14\" font-weight=\"600\">${title}</text>
+
+  <g>
+    ${xAxis}
+    ${yAxis}
+    ${xTickMarks}
+    ${yTickMarks}
+    ${bars}
+    <text x=\"${(plotX + plotW / 2).toFixed(2)}\" y=\"${(height - 10).toFixed(
+      2
+    )}\" fill=\"${labelColor}\" font-family=\"${fontFamily}\" font-size=\"12\" text-anchor=\"middle\">Sun hours</text>
+    <text x=\"16\" y=\"${(plotY + plotH / 2).toFixed(
+      2
+    )}\" fill=\"${labelColor}\" font-family=\"${fontFamily}\" font-size=\"12\" text-anchor=\"middle\" transform=\"rotate(-90 16 ${(plotY + plotH / 2).toFixed(
+      2
+    )})\">Points</text>
+  </g>
 </svg>`;
   };
+
+  useEffect(() => {
+    if (!chartMenu) return;
+    const close = () => setChartMenu(null);
+    const onKeyDown = (e) => {
+      if (e.key === "Escape") close();
+    };
+    window.addEventListener("mousedown", close);
+    window.addEventListener("scroll", close, true);
+    window.addEventListener("keydown", onKeyDown);
+    return () => {
+      window.removeEventListener("mousedown", close);
+      window.removeEventListener("scroll", close, true);
+      window.removeEventListener("keydown", onKeyDown);
+    };
+  }, [chartMenu]);
 
   useEffect(() => {
     if (viewerRef?.current?.setOptions) {
@@ -440,6 +540,8 @@ export default function TerrainOsmPanel({ viewerRef }) {
             <div className="terrain-controls-section">
               <div className="terrain-section-title">Solar analysis</div>
 
+              <div className="terrain-meta" style={{ marginTop: 8 }}>{status}</div>
+
               <div className="terrain-row" style={{ marginTop: 8 }}>
                 <button
                   type="button"
@@ -448,52 +550,13 @@ export default function TerrainOsmPanel({ viewerRef }) {
                     setStatus("Running solar analysis...");
                     try {
                       const shadeMeshes = viewerRef?.current?.getShadeMeshesForAnalysis?.() || [];
-                      const shadeInstances = viewerRef?.current?.getShadeInstances?.() || [];
-                      if (shadeMeshes.length) {
-                        const first = shadeMeshes[0] || {};
-                        const vCount = Array.isArray(first.vertices) ? first.vertices.length : 0;
-                        const fCount = Array.isArray(first.faces) ? first.faces.length : 0;
-                        const instFactors = (shadeInstances || [])
-                          .map((s) => {
-                            const id = String(s?.id || "");
-                            const f = Number(s?.coolingFactor);
-                            const pct = Number.isFinite(f) ? Math.round(f * 100) : "?";
-                            return `${id}:${pct}%`;
-                          })
-                          .slice(0, 6)
-                          .join(", ");
-                        setAnalysisStatus(
-                          `Debug: shadeMeshes=${shadeMeshes.length} | firstShade vertices=${vCount} faces=${fCount} | coolingFactor=${first.cooling_factor} | instances=${instFactors || "(none)"}`
-                        );
-                      }
-                      if (shadeInstances.length && !shadeMeshes.length) {
-                        setAnalysisStatus(
-                          "Warning: Shade instances exist, but shade mesh export is empty. Shade structures may not affect solar results for these presets."
-                        );
-                      }
                       const result = await viewerRef?.current?.runSolarAnalysis?.(analysisSettings, { shadeMeshes });
                       setAnalysisResult(result || null);
-                      if (result?.metadata) {
-                        const md = result.metadata;
-                        const shadeMeshesCount = md.shade_meshes_count ?? "?";
-                        const shadeIntersectorsCount = md.shade_intersectors_count ?? "?";
-                        const shadeRaysTested = md.shade_rays_tested ?? "?";
-                        const shadeRaysHit = md.shade_rays_hit ?? "?";
-                        const shadeFactorMax = md.shade_factor_max ?? "?";
-                        const shadeFactorAvg = md.shade_factor_avg ?? "?";
-                        const pointsInShadeBbox = md.analysis_points_in_shade_bbox ?? "?";
-                        const shadeBboxMin = md.shade_bbox_min;
-                        const shadeBboxMax = md.shade_bbox_max;
-                        const minValue = result?.min;
-                        const maxValue = result?.max;
-                        setAnalysisStatus(
-                          `Metadata: mode=${md.mode} | vectors=${md.vector_count} | grid=${md.grid_spacing} | min=${minValue} max=${maxValue} | shade_meshes=${shadeMeshesCount} | shade_intersectors=${shadeIntersectorsCount} | shade_rays_hit=${shadeRaysHit}/${shadeRaysTested} | shade_max=${shadeFactorMax} | shade_avg=${shadeFactorAvg} | points_in_shade_bbox=${pointsInShadeBbox} | shade_bbox_min=${shadeBboxMin} | shade_bbox_max=${shadeBboxMax}`
-                        );
-                      }
                       setStatus("Solar analysis ready");
                     } catch (e) {
-                      setStatus("Solar analysis failed");
-                      setAnalysisStatus(String(e?.message || e));
+                      const msg = String(e?.message || e);
+                      setStatus(`Solar analysis failed: ${msg}`);
+                      setAnalysisStatus(msg);
                     }
                   }}
                 >
@@ -546,8 +609,6 @@ export default function TerrainOsmPanel({ viewerRef }) {
                 </button>
               </div>
 
-              {analysisStatus ? <div className="terrain-meta" style={{ marginTop: 8 }}>{analysisStatus}</div> : null}
-
               <div className="terrain-grid terrain-grid-2">
                 <label className="terrain-field">
                   <select
@@ -569,9 +630,19 @@ export default function TerrainOsmPanel({ viewerRef }) {
                     type="number"
                     step="5"
                     value={analysisSettings.timestep}
-                    onChange={(e) =>
-                      setAnalysisSettings((s) => ({ ...s, timestep: clampNumber(e.target.value, 5, 180) }))
-                    }
+                    onChange={(e) => {
+                      const v = e.target.value;
+                      setAnalysisSettings((s) => ({
+                        ...s,
+                        timestep: normalizeNumericInput(v, { min: 5, max: 180, fallback: 60 }),
+                      }));
+                    }}
+                    onBlur={() => {
+                      setAnalysisSettings((s) => ({
+                        ...s,
+                        timestep: normalizeOnBlur(s.timestep, { min: 5, max: 180, fallback: 60 }),
+                      }));
+                    }}
                   />
                   <span className="terrain-field-label">Timestep (min)</span>
                 </label>
@@ -606,12 +677,25 @@ export default function TerrainOsmPanel({ viewerRef }) {
                     type="number"
                     step="1"
                     value={analysisSettings.analysisPeriod.start_hour}
-                    onChange={(e) =>
+                    onChange={(e) => {
+                      const v = e.target.value;
                       setAnalysisSettings((s) => ({
                         ...s,
-                        analysisPeriod: { ...s.analysisPeriod, start_hour: clampNumber(e.target.value, 0, 23) },
-                      }))
-                    }
+                        analysisPeriod: {
+                          ...s.analysisPeriod,
+                          start_hour: normalizeNumericInput(v, { min: 0, max: 23, fallback: 9 }),
+                        },
+                      }));
+                    }}
+                    onBlur={() => {
+                      setAnalysisSettings((s) => ({
+                        ...s,
+                        analysisPeriod: {
+                          ...s.analysisPeriod,
+                          start_hour: normalizeOnBlur(s.analysisPeriod.start_hour, { min: 0, max: 23, fallback: 9 }),
+                        },
+                      }));
+                    }}
                   />
                   <span className="terrain-field-label">Start hour</span>
                 </label>
@@ -620,12 +704,25 @@ export default function TerrainOsmPanel({ viewerRef }) {
                     type="number"
                     step="1"
                     value={analysisSettings.analysisPeriod.end_hour}
-                    onChange={(e) =>
+                    onChange={(e) => {
+                      const v = e.target.value;
                       setAnalysisSettings((s) => ({
                         ...s,
-                        analysisPeriod: { ...s.analysisPeriod, end_hour: clampNumber(e.target.value, 0, 23) },
-                      }))
-                    }
+                        analysisPeriod: {
+                          ...s.analysisPeriod,
+                          end_hour: normalizeNumericInput(v, { min: 0, max: 23, fallback: 17 }),
+                        },
+                      }));
+                    }}
+                    onBlur={() => {
+                      setAnalysisSettings((s) => ({
+                        ...s,
+                        analysisPeriod: {
+                          ...s.analysisPeriod,
+                          end_hour: normalizeOnBlur(s.analysisPeriod.end_hour, { min: 0, max: 23, fallback: 17 }),
+                        },
+                      }));
+                    }}
                   />
                   <span className="terrain-field-label">End hour</span>
                 </label>
@@ -634,9 +731,19 @@ export default function TerrainOsmPanel({ viewerRef }) {
                     type="number"
                     step="1"
                     value={analysisSettings.gridSpacing}
-                    onChange={(e) =>
-                      setAnalysisSettings((s) => ({ ...s, gridSpacing: clampNumber(e.target.value, 1, 200) }))
-                    }
+                    onChange={(e) => {
+                      const v = e.target.value;
+                      setAnalysisSettings((s) => ({
+                        ...s,
+                        gridSpacing: normalizeNumericInput(v, { min: 1, max: 200, fallback: 10 }),
+                      }));
+                    }}
+                    onBlur={() => {
+                      setAnalysisSettings((s) => ({
+                        ...s,
+                        gridSpacing: normalizeOnBlur(s.gridSpacing, { min: 1, max: 200, fallback: 10 }),
+                      }));
+                    }}
                   />
                   <span className="terrain-field-label">Grid spacing (m)</span>
                 </label>
@@ -645,9 +752,19 @@ export default function TerrainOsmPanel({ viewerRef }) {
                     type="number"
                     step="1"
                     value={analysisSettings.north}
-                    onChange={(e) =>
-                      setAnalysisSettings((s) => ({ ...s, north: clampNumber(e.target.value, -180, 180) }))
-                    }
+                    onChange={(e) => {
+                      const v = e.target.value;
+                      setAnalysisSettings((s) => ({
+                        ...s,
+                        north: normalizeNumericInput(v, { min: -180, max: 180, fallback: 0 }),
+                      }));
+                    }}
+                    onBlur={() => {
+                      setAnalysisSettings((s) => ({
+                        ...s,
+                        north: normalizeOnBlur(s.north, { min: -180, max: 180, fallback: 0 }),
+                      }));
+                    }}
                   />
                   <span className="terrain-field-label">North (deg)</span>
                 </label>
@@ -659,9 +776,9 @@ export default function TerrainOsmPanel({ viewerRef }) {
               style={{ width: "100%", marginTop: 12 }}
             >
               <div className="terrain-charts-card">
-                <div className="terrain-charts-header">
+                <div className="terrain-charts-header" style={{ display: "flex", flexDirection: "column", gap: 4 }}>
                   <div className="terrain-charts-title">Sun Hours Distribution</div>
-                  <div className="terrain-charts-subtitle">
+                  <div className="terrain-charts-subtitle" style={{ fontSize: 12, lineHeight: 1.25, opacity: 0.85 }}>
                     Run an analysis to generate a downloadable figure and raw data table.
                   </div>
                 </div>
@@ -704,16 +821,129 @@ export default function TerrainOsmPanel({ viewerRef }) {
                   style={{ minHeight: chartsExpanded ? 420 : 220 }}
                 >
                 {analysisResult ? (
-                  <img
-                    alt="Sun Hours Distribution"
-                    style={{ width: "100%", height: "100%", objectFit: "contain" }}
-                    src={`data:image/svg+xml;charset=utf-8,${encodeURIComponent(
-                      buildSunHoursHistogramSvg(analysisResult, {
-                        width: 980,
-                        height: chartsExpanded ? 420 : 240,
-                      })
-                    )}`}
-                  />
+                  <div style={{ position: "relative", width: "100%", height: "100%" }}>
+                    <img
+                      alt="Sun Hours Distribution"
+                      style={{ width: "100%", height: "100%", objectFit: "contain", cursor: "pointer" }}
+                      onClick={() => setChartModalOpen(true)}
+                      onContextMenu={(e) => {
+                        e.preventDefault();
+                        setChartMenu({ x: e.clientX, y: e.clientY });
+                      }}
+                      src={`data:image/svg+xml;charset=utf-8,${encodeURIComponent(
+                        buildSunHoursHistogramSvg(analysisResult, {
+                          width: 980,
+                          height: chartsExpanded ? 420 : 240,
+                        })
+                      )}`}
+                    />
+
+                    {chartMenu ? (
+                      <div
+                        style={{
+                          position: "fixed",
+                          left: chartMenu.x,
+                          top: chartMenu.y,
+                          zIndex: 2000,
+                          background: "#0b1220",
+                          border: "1px solid rgba(148, 163, 184, 0.25)",
+                          borderRadius: 10,
+                          padding: 6,
+                          minWidth: 180,
+                          boxShadow: "0 10px 30px rgba(0,0,0,0.55)",
+                        }}
+                        onMouseDown={(e) => e.stopPropagation()}
+                      >
+                        <button
+                          type="button"
+                          className="terrain-chart-btn"
+                          style={{ width: "100%", justifyContent: "flex-start" }}
+                          onClick={() => {
+                            setChartMenu(null);
+                            setChartModalOpen(true);
+                          }}
+                        >
+                          Open chart
+                        </button>
+                        <button
+                          type="button"
+                          className="terrain-chart-btn"
+                          style={{ width: "100%", justifyContent: "flex-start" }}
+                          onClick={() => {
+                            if (!analysisResult) return;
+                            setChartMenu(null);
+                            const svg = buildSunHoursHistogramSvg(analysisResult, { width: 1200, height: 520 });
+                            downloadTextFile("sun-hours-distribution.svg", svg, "image/svg+xml");
+                          }}
+                        >
+                          Download SVG
+                        </button>
+                        <button
+                          type="button"
+                          className="terrain-chart-btn"
+                          style={{ width: "100%", justifyContent: "flex-start" }}
+                          onClick={() => {
+                            if (!analysisResult) return;
+                            setChartMenu(null);
+                            const csv = buildSunHoursCsv(analysisResult);
+                            downloadTextFile("sun-hours.csv", csv, "text/csv");
+                          }}
+                        >
+                          Download CSV
+                        </button>
+                      </div>
+                    ) : null}
+
+                    {chartModalOpen ? (
+                      <div
+                        role="dialog"
+                        aria-modal="true"
+                        style={{
+                          position: "fixed",
+                          inset: 0,
+                          zIndex: 1800,
+                          background: "rgba(0,0,0,0.6)",
+                          display: "flex",
+                          alignItems: "center",
+                          justifyContent: "center",
+                          padding: 18,
+                        }}
+                        onMouseDown={() => setChartModalOpen(false)}
+                      >
+                        <div
+                          style={{
+                            width: "min(1200px, 96vw)",
+                            height: "min(700px, 86vh)",
+                            background: "#0b1220",
+                            border: "1px solid rgba(148, 163, 184, 0.25)",
+                            borderRadius: 14,
+                            boxShadow: "0 16px 48px rgba(0,0,0,0.65)",
+                            padding: 10,
+                            display: "flex",
+                            flexDirection: "column",
+                            gap: 10,
+                          }}
+                          onMouseDown={(e) => e.stopPropagation()}
+                        >
+                          <div style={{ display: "flex", justifyContent: "space-between", gap: 8 }}>
+                            <div className="terrain-charts-title">Sun Hours Distribution</div>
+                            <button type="button" className="terrain-chart-btn" onClick={() => setChartModalOpen(false)}>
+                              Close
+                            </button>
+                          </div>
+                          <div style={{ flex: 1, minHeight: 0 }}>
+                            <img
+                              alt="Sun Hours Distribution (expanded)"
+                              style={{ width: "100%", height: "100%", objectFit: "contain" }}
+                              src={`data:image/svg+xml;charset=utf-8,${encodeURIComponent(
+                                buildSunHoursHistogramSvg(analysisResult, { width: 1200, height: 600 })
+                              )}`}
+                            />
+                          </div>
+                        </div>
+                      </div>
+                    ) : null}
+                  </div>
                 ) : (
                   <div className="terrain-meta">Simulation results will appear here.</div>
                 )}
@@ -722,11 +952,6 @@ export default function TerrainOsmPanel({ viewerRef }) {
             </div>
           </>
         ) : null}
-
-        <div className="terrain-meta">
-          <div>status: {status}</div>
-          <div>bbox: {formatBounds(bounds)}</div>
-        </div>
       </div>
     </div>
   );
