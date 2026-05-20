@@ -41,6 +41,16 @@ function boundsFromAnalyze(bbox) {
   return { minLon: west, minLat: south, maxLon: east, maxLat: north };
 }
 
+function boundsEqual(a, b, eps = 1e-4) {
+  if (!a || !b) return false;
+  return (
+    Math.abs(Number(a.minLon) - Number(b.minLon)) <= eps &&
+    Math.abs(Number(a.minLat) - Number(b.minLat)) <= eps &&
+    Math.abs(Number(a.maxLon) - Number(b.maxLon)) <= eps &&
+    Math.abs(Number(a.maxLat) - Number(b.maxLat)) <= eps
+  );
+}
+
 function defaultBounds() {
   return {
     minLon: -118.326047,
@@ -50,7 +60,7 @@ function defaultBounds() {
   };
 }
 
-const TerrainOsmViewer = forwardRef(function TerrainOsmViewer({ options, onStatus }, ref) {
+const TerrainOsmViewer = forwardRef(function TerrainOsmViewer({ options, onStatus, mapUnlocked }, ref) {
   const apiKey = import.meta.env.VITE_OPENTOPO_API_KEY;
 
   const SHADE_TARGET_MAX_DIM_METERS = 20;
@@ -2571,11 +2581,21 @@ const TerrainOsmViewer = forwardRef(function TerrainOsmViewer({ options, onStatu
   // listen for Analyze events and auto-generate terrain+OSM
   useEffect(() => {
     const handler = (event) => {
+      if (!mapUnlocked) return;
       const data = event?.data;
       if (!data) return;
       if (data.type !== "cadmapper:analyze") return;
       const next = boundsFromAnalyze(data.bbox);
       if (!next) return;
+
+      if (generationIdRef.current === 0 && boundsEqual(next, boundsRef.current)) {
+        return;
+      }
+
+      const defaults = defaultBounds();
+      if (boundsEqual(next, defaults) && boundsEqual(boundsRef.current, defaults) && generationIdRef.current === 0) {
+        return;
+      }
       // IMPORTANT: generate() reads boundsRef.current, not React state.
       // setBounds(next) is async, so without this assignment we can generate the DEFAULT bounds.
       boundsRef.current = next;
@@ -2603,7 +2623,7 @@ const TerrainOsmViewer = forwardRef(function TerrainOsmViewer({ options, onStatu
     window.addEventListener("message", handler);
     return () => window.removeEventListener("message", handler);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [mapUnlocked]);
 
   const currentPts = drawStateRef.current.current.length;
   const totalFinal = drawStateRef.current.polylines.length;

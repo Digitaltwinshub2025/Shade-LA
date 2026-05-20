@@ -100,12 +100,6 @@ function App() {
 
       <nav id="sidebar">
         <div className="brand">
-          <img
-            className="logo"
-            src={`${import.meta.env.BASE_URL || "/"}images/la-logo.png`}
-            alt="ShadeLA logo"
-            draggable={false}
-          />
           <h1>ShadeLA</h1>
           <button
             type="button"
@@ -225,7 +219,7 @@ function App() {
                   id="Model"
                   style={{ position: "relative", width: "100%", height: "100%", minHeight: 420 }}
                 >
-                  <TerrainOsmViewer ref={terrainViewerRef} />
+                  <TerrainOsmViewer ref={terrainViewerRef} mapUnlocked={mapUnlocked} />
                 </div>
               </div>
             </section>
@@ -235,7 +229,7 @@ function App() {
                 <h2>Terrain / OSM</h2>
               </div>
               <div className="panel-body">
-                <TerrainOsmPanel viewerRef={terrainViewerRef} />
+                <TerrainOsmPanel viewerRef={terrainViewerRef} mapUnlocked={mapUnlocked} />
               </div>
             </section>
 

@@ -282,7 +282,7 @@ main {
 .workspace-grid {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
-  grid-template-rows: 80vh 80vh minmax(320px, 1fr);
+  grid-template-rows: clamp(420px, 60vh, 860px) clamp(420px, 60vh, 900px) minmax(320px, 1fr);
   gap: 16px;
   height: auto;
 }
@@ -1094,11 +1094,26 @@ main #canopy-trees .resources-original .embed-actions {
   }
 
   nav {
-    height: auto;
-    max-height: 70vh;
-    position: relative;
-    border-right: none;
-    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+    position: fixed;
+    top: 0;
+    left: 0;
+    height: 100dvh;
+    width: min(320px, 86vw);
+    max-height: none;
+    z-index: 1000;
+    border-right: 1px solid rgba(255, 255, 255, 0.08);
+    border-bottom: none;
+    transform: translateX(0);
+    transition: transform 180ms ease;
+  }
+
+  .usgbc-app.sidebar-hidden nav {
+    display: block;
+    transform: translateX(-105%);
+  }
+
+  main {
+    padding: 18px;
   }
 
   .hero {
@@ -1109,6 +1124,14 @@ main #canopy-trees .resources-original .embed-actions {
     display: flex;
     flex-direction: column;
     height: auto;
+  }
+
+  .panel-map-top {
+    min-height: clamp(320px, 52vh, 560px);
+  }
+
+  .panel-model {
+    min-height: clamp(360px, 56vh, 720px);
   }
 
   .resources-grid {

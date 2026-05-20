@@ -3,7 +3,6 @@ import "leaflet-draw/dist/leaflet.draw.css";
 import React, { useEffect, useMemo, useRef, useState } from "react";
 
 import { formatBounds } from "../terrain-osm/geo.js";
-import { createMapPicker } from "../terrain-osm/map.js";
 import { sampleAnalysisColor } from "../terrain-osm/analysis-colors.js";
 
 const DEFAULT_BOUNDS = {
@@ -35,6 +34,16 @@ function boundsFromAnalyze(bbox) {
   return { minLon: west, minLat: south, maxLon: east, maxLat: north };
 }
 
+function boundsEqual(a, b, eps = 1e-6) {
+  if (!a || !b) return false;
+  return (
+    Math.abs(Number(a.minLon) - Number(b.minLon)) <= eps &&
+    Math.abs(Number(a.minLat) - Number(b.minLat)) <= eps &&
+    Math.abs(Number(a.maxLon) - Number(b.maxLon)) <= eps &&
+    Math.abs(Number(a.maxLat) - Number(b.maxLat)) <= eps
+  );
+}
+
 function buildLegendStops(steps = 9) {
   const stops = [];
   for (let index = steps - 1; index >= 0; index -= 1) {
@@ -64,8 +73,7 @@ function createDefaultAnalysisSettings() {
   };
 }
 
-export default function TerrainOsmPanel({ viewerRef }) {
-  const mapRef = useRef(null);
+export default function TerrainOsmPanel({ viewerRef, mapUnlocked }) {
   const mapPickerRef = useRef(null);
   const regenTimerRef = useRef(null);
   const regenDidInitRef = useRef(false);
@@ -296,34 +304,10 @@ export default function TerrainOsmPanel({ viewerRef }) {
   }, [viewerRef, options]);
 
   useEffect(() => {
-    const mapEl = mapRef.current;
-    if (!mapEl) return;
-
-    const picker = createMapPicker(mapEl, bounds, () => {});
-    mapPickerRef.current = picker;
-
-    picker.onBoundsChanged((b) => {
-      setBounds({ minLon: b.minLon, minLat: b.minLat, maxLon: b.maxLon, maxLat: b.maxLat });
-    });
-
-    return () => {
-      try {
-        picker.map?.remove?.();
-      } catch {
-        // ignore
-      }
-      mapPickerRef.current = null;
-    };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+    mapPickerRef.current = null;
   }, []);
 
   useEffect(() => {
-    try {
-      mapPickerRef.current?.setBounds?.(bounds);
-    } catch {
-      // ignore
-    }
-
     try {
       viewerRef?.current?.setBounds?.(bounds);
     } catch {
@@ -364,11 +348,16 @@ export default function TerrainOsmPanel({ viewerRef }) {
 
   useEffect(() => {
     const handler = (event) => {
+      if (!mapUnlocked) return;
       const data = event?.data;
       if (!data) return;
       if (data.type !== "cadmapper:analyze") return;
       const next = boundsFromAnalyze(data.bbox);
       if (!next) return;
+
+      if (boundsEqual(next, DEFAULT_BOUNDS) && boundsEqual(bounds, DEFAULT_BOUNDS)) {
+        return;
+      }
       setBounds(next);
       try {
         mapPickerRef.current?.setBounds?.(next, { fit: true });
@@ -379,7 +368,8 @@ export default function TerrainOsmPanel({ viewerRef }) {
 
     window.addEventListener("message", handler);
     return () => window.removeEventListener("message", handler);
-  }, []);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [bounds, mapUnlocked]);
 
   return (
     <div className="terrain-panel">
@@ -454,8 +444,6 @@ export default function TerrainOsmPanel({ viewerRef }) {
                 <span className="terrain-field-label">MaxLat</span>
               </label>
             </div>
-
-            <div className="terrain-map" ref={mapRef} style={{ height: 260 }} />
           </>
         ) : null}
 
